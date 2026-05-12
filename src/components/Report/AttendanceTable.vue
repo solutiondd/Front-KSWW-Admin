@@ -479,7 +479,7 @@ const extractEntryExitAttendance = (attendance) => {
     const stamps = attendance.timeStamps.map(ts => ({
         raw: ts.timestamp,
         hour: parseInt(ts.timestamp.split(' ')[1].split(':')[0]),
-        time: ts.timestamp.split(' ')[1],
+        time: ts.timestamp.split(' ')[1].slice(0, 5),
         image: ts.image,
         location: ts.location
     }))

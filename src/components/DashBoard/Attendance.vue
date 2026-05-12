@@ -200,7 +200,7 @@ const displayedPages = computed(() => {
 function getEntryTime(item) {
     if (!item.attendance || item.attendance.length === 0) return '-'
     const ts = item.attendance[0].timeStamp || item.attendance[0].timeStamps?.[0]?.timestamp
-    return ts ? ts.split(' ')[1] : '-'
+    return ts ? ts.split(' ')[1].slice(0, 5) : '-'
 }
 function getEntryImage(item) {
     if (!item.attendance || item.attendance.length === 0) return ''

@@ -77,7 +77,7 @@
                 </div>
             </div>
 
-            <div class="form-row" v-if="selectedType && selectedBehavior">
+            <div class="form-row" v-if="selectedType && (selectedType.name === 'บำเพ็ญประโยชน์' || selectedBehavior)">
                 <div v-if="showLevel" class="form-group">
                     <label class="form-label"><span class="icon">🏷️</span> ระดับ</label>
                     <div class="input-wrapper">
@@ -453,10 +453,23 @@ function selectDescription(level) {
 }
 
 async function handleSubmit() {
-    if (!selectedStudent.value || !selectedType.value || !selectedBehavior.value) {
+    if (!selectedStudent.value || !selectedType.value) {
         Swal.fire('กรุณากรอกข้อมูลให้ครบ', '', 'warning')
         return
     }
+
+    if (selectedType.value.name !== 'บำเพ็ญประโยชน์' && !selectedBehavior.value) {
+        Swal.fire('กรุณากรอกข้อมูลให้ครบ', '', 'warning')
+        return
+    }
+
+    if (selectedType.value.name === 'บำเพ็ญประโยชน์') {
+        if (!selectedBehavior.value && !(form.value.description || '').trim()) {
+            Swal.fire('กรุณากรอกข้อมูลให้ครบ', '', 'warning')
+            return
+        }
+    }
+
     const description = String(form.value.description || '').trim() || '-'
     const normalizedScore = normalizeScoreByType(form.value.score)
     if (normalizedScore === '') {
@@ -467,7 +480,7 @@ async function handleSubmit() {
     const payload = {
         student_id: selectedStudent.value._id,
         behavior_type: selectedType.value.name,
-        behavior: selectedBehavior.value.name,
+        behavior: selectedBehavior.value?.name || form.value.description || 'บำเพ็ญประโยชน์',
         behavior_level: selectedLevel.value ? selectedLevel.value.level : 1,
         description,
         score: Number(normalizedScore),

@@ -79,8 +79,12 @@ const termStart = ref('')
 const termEnd = ref('')
 const totalWorkdays = ref(0)
 const holidayWorkdays = ref(0)
+const selectedTermName = ref('')
 
-const selectedTermLabel = computed(() => (props.selectedTermKey === 'term2' ? 'เทอม 2' : 'เทอม 1'))
+const selectedTermLabel = computed(() => {
+    if (selectedTermName.value) return selectedTermName.value
+    return props.selectedTermKey === 'term2' ? 'เทอม 2' : 'เทอม 1'
+})
 const remainingDays = computed(() => Math.max(totalWorkdays.value - holidayWorkdays.value, 0))
 const maxProgress = computed(() => Math.max(totalWorkdays.value, 1))
 const holidayPercent = computed(() => {
@@ -163,6 +167,7 @@ function pickTerm(terms, termKey) {
 async function fetchSummary() {
     loading.value = true
     errorMessage.value = ''
+    selectedTermName.value = ''
     termStart.value = ''
     termEnd.value = ''
     totalWorkdays.value = 0
@@ -173,6 +178,7 @@ async function fetchSummary() {
         const academicRes = await service.getAcademicCalendarByYear(props.year)
         const terms = academicRes?.data?.terms ?? []
         const selectedTerm = pickTerm(terms, props.selectedTermKey)
+        selectedTermName.value = String(selectedTerm?.term || '').trim()
 
         if (!selectedTerm?.start_date || !selectedTerm?.end_date) {
             return

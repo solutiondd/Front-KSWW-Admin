@@ -42,15 +42,15 @@
                                     <span
                                         :class="getDayClass(day) + ' inline-block w-7 h-7 rounded-full leading-7 cursor-pointer'"
                                         v-if="getAttendanceMap[dateToStr(day)] && getAttendanceMap[dateToStr(day)].timeStamps && getAttendanceMap[dateToStr(day)].timeStamps.length > 0"
-                                        @click="openAttendanceInfo(day)">
+                                        @click="openAttendanceInfo(day)" :title="getDayTitle(day)">
                                         {{ day.getDate() }}
                                     </span>
                                     <span :class="getDayClass(day) + ' inline-block w-7 h-7 rounded-full leading-7'"
-                                        v-else-if="getHolidayTitle(day)" :title="getHolidayTitle(day)">
+                                        v-else-if="getHolidayTitle(day)" :title="getDayTitle(day)">
                                         {{ day.getDate() }}
                                     </span>
                                     <span :class="getDayClass(day) + ' inline-block w-7 h-7 rounded-full leading-7'"
-                                        v-else>
+                                        v-else :title="getDayTitle(day)">
                                         {{ day.getDate() }}
                                     </span>
                                 </div>
@@ -64,10 +64,15 @@
                     มาโรงเรียน</div>
                 <div class="flex items-center gap-1"><span
                         class="inline-block w-4 h-4 rounded-full bg-yellow-400"></span> มาสาย</div>
+                <div class="flex items-center gap-1"><span
+                    class="inline-block w-4 h-4 rounded-full bg-emerald-400"></span> ลา</div>
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-red-500"></span>
                     ไม่ได้สแกน</div>
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-gray-400"></span>
                     วันหยุด</div>
+                <div class="flex items-center gap-1"><span
+                    class="inline-block w-4 h-4 rounded-full bg-violet-300"></span>
+                    ปิดเทอม/ช่วงพิเศษ</div>
             </div>
             <AttendanceInfo ref="attendanceInfoRef" :user="teacher" :attendance="selectedAttendanceInfo"
                 type="teacher" />
@@ -79,6 +84,8 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import reportApi from '../../api/report'
 import holidaysApi from '../../api/holidays'
+import { AcademicCalendarService } from '../../api/academiccalendar'
+import { LeaveService } from '../../api/leave'
 import AttendanceInfo from '../AttendanceInfo.vue'
 
 const props = defineProps({
@@ -101,9 +108,13 @@ const teacherCode = computed(() => props.teacher.code || props.teacher.userid ||
 
 const attendances = ref([])
 const holidays = ref([])
+const academicTerms = ref([])
+const approvedLeaves = ref([])
 const loading = ref(false)
 const attendanceInfoRef = ref(null)
 const selectedAttendanceInfo = ref(null)
+const academicCalendarService = new AcademicCalendarService()
+const leaveService = new LeaveService()
 
 const calendar = computed(() => {
     const year = selectedYear.value
@@ -162,6 +173,70 @@ const dateToStr = (dateObj) => {
     )
 }
 
+const normalizeDateInput = (value) => {
+    if (!value) return ''
+    return String(value).substring(0, 10)
+}
+
+const strToDate = (value) => {
+    const normalized = normalizeDateInput(value)
+    if (!normalized) return null
+    const [year, month, day] = normalized.split('-').map(Number)
+    if (!year || !month || !day) return null
+    return new Date(year, month - 1, day)
+}
+
+const approvedLeaveMap = computed(() => {
+    const map = {}
+    approvedLeaves.value.forEach((leaveRequest) => {
+        const startDate = strToDate(leaveRequest?.start_date)
+        const endDate = strToDate(leaveRequest?.end_date || leaveRequest?.start_date)
+        if (!startDate || !endDate) return
+
+        const leaveTypeName = leaveRequest?.leave_type_id?.name || 'ลา'
+        const reason = leaveRequest?.reason || ''
+        const cursor = new Date(startDate)
+        const lastDate = endDate < startDate ? startDate : endDate
+
+        while (cursor <= lastDate) {
+            const dateKey = dateToStr(cursor)
+            if (!map[dateKey]) {
+                map[dateKey] = {
+                    leaveType: leaveTypeName,
+                    reason,
+                }
+            }
+            cursor.setDate(cursor.getDate() + 1)
+        }
+    })
+    return map
+})
+
+const isTermOneOrTwo = (termName) => {
+    const name = String(termName || '').toLowerCase()
+    return /(เทอม\s*1|term\s*1|semester\s*1|ภาคเรียน\s*ที่?\s*1|เทอม\s*2|term\s*2|semester\s*2|ภาคเรียน\s*ที่?\s*2)/i.test(name)
+}
+
+const getAcademicTermStatus = (dateObj) => {
+    const dstr = dateToStr(dateObj)
+    if (!dstr) return { inTerm: false, label: 'ปิดเทอม' }
+
+    const matchedTerm = academicTerms.value.find((term) => {
+        const start = normalizeDateInput(term.start_date)
+        const end = normalizeDateInput(term.end_date)
+        if (!start || !end) return false
+        return dstr >= start && dstr <= end
+    })
+
+    if (!matchedTerm) return { inTerm: false, label: 'ปิดเทอม' }
+
+    if (isTermOneOrTwo(matchedTerm.term)) {
+        return { inTerm: true, label: matchedTerm.term || 'ช่วงเวลาเรียน' }
+    }
+
+    return { inTerm: false, label: matchedTerm.term || 'ปิดเทอม' }
+}
+
 const openAttendanceInfo = (dateObj) => {
     const dstr = dateToStr(dateObj)
     const att = getAttendanceMap.value[dstr]
@@ -173,9 +248,6 @@ const openAttendanceInfo = (dateObj) => {
 
 const getDayClass = (dateObj) => {
     if (!dateObj) return ''
-    const now = new Date()
-    now.setHours(0, 0, 0, 0)
-    if (dateObj > now) return ''
     const dstr = dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0')
     const att = getAttendanceMap.value[dstr]
     if (att && att.timeStamps && att.timeStamps.length > 0) {
@@ -183,9 +255,42 @@ const getDayClass = (dateObj) => {
         if (firstTime > '08:01') return 'bg-yellow-400 text-black'
         return 'bg-blue-500 text-white'
     }
+
+    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6
+    if (isWeekend) return ''
+
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const isFuture = dateObj > now
+    const termStatus = getAcademicTermStatus(dateObj)
+    if (!termStatus.inTerm) return 'bg-violet-300 text-violet-900'
+
     const isHoliday = holidays.value.some(h => h.date === dstr)
     if (isHoliday) return 'bg-gray-400 text-white'
+
+    const leaveInfo = approvedLeaveMap.value[dstr]
+    if (leaveInfo) return 'bg-emerald-400 text-emerald-900'
+
+    if (isFuture) return ''
+
     return 'bg-red-500 text-white'
+}
+
+const getDayTitle = (dateObj) => {
+    if (!dateObj) return ''
+    const holidayTitle = getHolidayTitle(dateObj)
+    if (holidayTitle) return holidayTitle
+
+    const leaveInfo = approvedLeaveMap.value[dateToStr(dateObj)]
+    if (leaveInfo) {
+        if (leaveInfo.reason) {
+            return `ลา (${leaveInfo.leaveType}): ${leaveInfo.reason}`
+        }
+        return `ลา (${leaveInfo.leaveType})`
+    }
+
+    const termStatus = getAcademicTermStatus(dateObj)
+    return termStatus.label || 'ปิดเทอม'
 }
 
 const fetchAttendance = async () => {
@@ -196,24 +301,58 @@ const fetchAttendance = async () => {
         const month = selectedMonth.value
         const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
         const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`
-        const res = await reportApi.getAttendanceReport({
-            start,
-            end,
-            role: 'teacher',
-            userid: props.teacher.userid || props.teacher.id,
-            page: 1,
-            limit: 1,
-        })
+        const leaveUserId = props.teacher?._id || props.teacher?.id || props.teacher?.userid || ''
+        const [res, holidaysRes, leaveRes] = await Promise.all([
+            reportApi.getAttendanceReport({
+                start,
+                end,
+                role: 'teacher',
+                userid: props.teacher.userid || props.teacher.id,
+                page: 1,
+                limit: 1,
+            }),
+            holidaysApi.getHolidaysByRange(start, end),
+            leaveService.getLeaveRequests({
+                start_date: start,
+                end_date: end,
+                status: 'approved',
+                user_id: leaveUserId,
+            }),
+        ])
+
+        const leaveRows = leaveRes?.data || []
+        approvedLeaves.value = Array.isArray(leaveRows)
+            ? leaveRows.filter((leaveRequest) => String(leaveRequest?.status || '').toLowerCase() === 'approved')
+            : []
+
         if (res.data && res.data.length > 0) {
             attendances.value = res.data[0].attendances || []
         } else {
             attendances.value = []
         }
-        const holidaysRes = await holidaysApi.getHolidaysByRange(start, end)
+
         holidays.value = Array.isArray(holidaysRes.data) ? holidaysRes.data : []
+
+        const yearsToFetch = [year]
+        // Term 2 can span into Jan-Mar of the next calendar year, so only then we also load previous year.
+        if (month <= 2) {
+            yearsToFetch.push(year - 1)
+        }
+
+        const termSources = await Promise.allSettled(
+            yearsToFetch.map((y) => academicCalendarService.getAcademicCalendarByYear(y))
+        )
+
+        academicTerms.value = termSources.flatMap((result) => {
+            if (result.status !== 'fulfilled') return []
+            const terms = result.value?.data?.terms
+            return Array.isArray(terms) ? terms : []
+        })
     } catch (e) {
         attendances.value = []
         holidays.value = []
+        academicTerms.value = []
+        approvedLeaves.value = []
     } finally {
         loading.value = false
     }

@@ -24,7 +24,7 @@
                     <tr class="bg-gray-100">
                         <th>รหัส</th>
                         <th>ชื่อ</th>
-                        <th class="w-40 text-center">สถานะ</th>
+                        <th class="w-40 max-[444px]:w-28 text-center">สถานะ</th>
                         <th class="w-48 max-[444px]:hidden">หมายเหตุ</th>
                     </tr>
                 </thead>
@@ -40,20 +40,22 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="text-center align-middle">
+                        <td class="text-center align-middle max-[444px]:px-1">
                             <div v-if="localPendingLeaveApprovals[student._id]" class="dropdown dropdown-center">
                                 <button
-                                    class="btn btn-sm btn-ghost w-full justify-center border-0 shadow-none bg-transparent hover:bg-base-200">
-                                    <span class="badge badge-warning gap-2">
+                                    class="btn btn-sm max-[444px]:btn-xs btn-ghost w-full justify-center border-0 shadow-none bg-transparent hover:bg-base-200 max-[444px]:min-h-7 max-[444px]:h-7 max-[444px]:px-1">
+                                    <span class="badge badge-warning gap-2 max-[444px]:badge-xs">
                                         รออนุมัติ
                                     </span>
                                 </button>
-                                <ul class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <ul
+                                    class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-[444px]:w-36 max-[444px]:right-0 max-[444px]:left-auto">
                                     <li>
                                         <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
                                             @click.stop.prevent="approveLeave(student._id)">
-                                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-success"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M5 13l4 4L19 7"></path>
                                             </svg>
@@ -62,9 +64,10 @@
                                     </li>
                                     <li>
                                         <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
                                             @click.stop.prevent="rejectLeave(student._id)">
-                                            <svg class="w-4 h-4 text-error" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-error"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M6 18L18 6M6 6l12 12"></path>
                                             </svg>
@@ -73,9 +76,10 @@
                                     </li>
                                     <li>
                                         <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
                                             @click.stop.prevent="cancelLeave(student._id)">
-                                            <svg class="w-4 h-4 text-warning" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-warning"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M6 18L18 6M6 6l12 12"></path>
                                             </svg>
@@ -84,9 +88,10 @@
                                     </li>
                                     <li>
                                         <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
                                             @click.stop.prevent="editLeave(student._id)">
-                                            <svg class="w-4 h-4 text-info" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-info"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.41-9.41a2 2 0 112.82 2.82L11 16l-4 1 1-4 9.59-9.59z">
                                                 </path>
@@ -97,29 +102,31 @@
                                 </ul>
                             </div>
                             <span v-else-if="localAttendanceData[student._id]?.status === 'present'"
-                                class="badge badge-success gap-2">
+                                class="badge badge-success gap-2 max-[444px]:badge-xs">
                                 มา
                             </span>
                             <span v-else-if="localAttendanceData[student._id]?.status === 'leave'"
-                                class="badge badge-warning">
+                                class="badge badge-warning max-[444px]:badge-xs">
                                 ลา
                             </span>
                             <div v-else class="dropdown dropdown-center">
                                 <button
-                                    class="btn btn-sm btn-ghost w-full justify-center border-0 shadow-none bg-transparent hover:bg-base-200">
+                                    class="btn btn-sm max-[444px]:btn-xs btn-ghost w-full justify-center border-0 shadow-none bg-transparent hover:bg-base-200 max-[444px]:min-h-7 max-[444px]:h-7 max-[444px]:px-1">
                                     <span v-if="displayAttendanceStatus(student._id) === 'absent'"
-                                        class="inline-flex items-center justify-center rounded-full bg-error px-3 py-1 text-xs font-medium leading-none text-error-content whitespace-nowrap">
+                                        class="inline-flex items-center justify-center rounded-full bg-error px-3 py-1 text-xs font-medium leading-none text-error-content whitespace-nowrap max-[444px]:px-2 max-[444px]:py-0.5 max-[444px]:text-[10px]">
                                         ไม่ได้สแกน
                                     </span>
-                                    <span v-else class="badge badge-ghost">
+                                    <span v-else class="badge badge-ghost max-[444px]:badge-xs">
                                         ว่าง
                                     </span>
                                 </button>
-                                <ul class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <ul
+                                    class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-[444px]:w-36 max-[444px]:right-0 max-[444px]:left-auto">
                                     <li>
-                                        <button type="button" @click.stop.prevent="markPresent(student._id)">
-                                            <svg class="w-4 h-4 text-success" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                        <button type="button" class="max-[444px]:text-xs max-[444px]:px-2"
+                                            @click.stop.prevent="markPresent(student._id)">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-success"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M5 13l4 4L19 7"></path>
                                             </svg>
@@ -127,9 +134,10 @@
                                         </button>
                                     </li>
                                     <li>
-                                        <button type="button" @click.stop.prevent="openLeaveModal(student._id)">
-                                            <svg class="w-4 h-4 text-warning" fill="none" stroke="currentColor"
-                                                viewBox="0 0 24 24">
+                                        <button type="button" class="max-[444px]:text-xs max-[444px]:px-2"
+                                            @click.stop.prevent="openLeaveModal(student._id)">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-warning"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                             </svg>
@@ -178,7 +186,7 @@
         </div>
 
         <dialog v-if="leaveModal.show" class="modal modal-open">
-            <div class="modal-box w-11/12 max-w-md">
+            <div class="modal-box w-[calc(100vw-1.5rem)] max-w-lg p-4 sm:p-6 overflow-x-hidden">
                 <h3 class="font-bold text-lg mb-4">บันทึกการลา</h3>
 
                 <div class="form-control w-full mb-4">
@@ -186,13 +194,14 @@
                         <span class="label-text">ประเภทการลา</span>
                     </label>
                     <select v-model="leaveModal.form.leaveType" class="select select-bordered">
-                        <option value="sick">ลาป่วย</option>
-                        <option value="personal">ลากิจส่วนตัว</option>
-                        <option value="other">ลาอื่น ๆ</option>
+                        <option value="" disabled>เลือกประเภทการลา</option>
+                        <option v-for="type in leaveTypes" :key="type._id" :value="type._id">
+                            {{ type.name }}
+                        </option>
                     </select>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div class="form-control w-full">
                         <label class="label">
                             <span class="label-text">วันเริ่มลา</span>
@@ -214,7 +223,7 @@
                     {{ formatThaiDate(leaveModal.form.leaveEndDate || leaveModal.form.leaveStartDate || selectedDate) }}
                 </p>
 
-                <div class="grid grid-cols-2 gap-4 mb-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div class="form-control w-full">
                         <label class="label">
                             <span class="label-text">เวลาเริ่ม <span class="text-gray-400 text-xs">(ไม่เลือก =
@@ -322,11 +331,7 @@ const imgBaseUrl = ref(import.meta.env.VITE_APP_IMG_URL);
 const autoSaving = ref(false);
 const localAttendanceData = ref({});
 const localPendingLeaveApprovals = ref({});
-const leaveTypeIdMap = ref({
-    sick: '',
-    personal: '',
-    other: '',
-});
+const leaveTypes = ref([]);
 
 const leaveModal = ref({
     show: false,
@@ -389,44 +394,22 @@ const toTimeNow = () => {
     return `${hh}:${mm}:${ss}`;
 };
 
-const getLeaveTypeLabel = (leaveType) => {
-    if (leaveType === 'sick') return 'ลาป่วย';
-    if (leaveType === 'personal') return 'ลากิจส่วนตัว';
-    return 'ลาอื่น ๆ';
+const getLeaveTypeNameById = (leaveTypeId) => {
+    return leaveTypes.value.find(type => type._id === leaveTypeId)?.name || '';
 };
 
-const getLeaveTypeKeyFromLabel = (label) => {
-    const text = String(label || '').trim();
-    if (text === 'ลาป่วย') return 'sick';
-    if (text === 'ลากิจส่วนตัว') return 'personal';
-    if (text === 'ลาอื่น ๆ') return 'other';
-    return 'other';
+const getLeaveTypeIdByName = (name) => {
+    const target = String(name || '').trim().toLowerCase();
+    return leaveTypes.value.find(type => String(type?.name || '').trim().toLowerCase() === target)?._id || '';
 };
 
 const loadLeaveTypes = async () => {
     try {
         const response = await leaveService.getLeaveTypes();
-        const leaveTypes = response?.data || [];
-        const map = { sick: '', personal: '', other: '' };
-
-        leaveTypes.forEach((item) => {
-            const name = String(item?.name || '').toLowerCase();
-            if (!map.sick && (name.includes('sick') || name.includes('ป่วย'))) {
-                map.sick = item._id;
-                return;
-            }
-            if (!map.personal && (name.includes('personal') || name.includes('กิจ'))) {
-                map.personal = item._id;
-                return;
-            }
-            if (!map.other) {
-                map.other = item._id;
-            }
-        });
-
-        leaveTypeIdMap.value = map;
+        leaveTypes.value = response?.data || [];
     } catch (error) {
         console.error('Load leave types error:', error);
+        leaveTypes.value = [];
     }
 };
 
@@ -465,8 +448,8 @@ const openLeaveModal = async (studentId, mode = 'create') => {
     const attendance = localAttendanceData.value[studentId] || {};
 
     const leaveType = mode === 'edit'
-        ? (pending.leaveTypeKey || getLeaveTypeKeyFromLabel(pending.leaveType || attendance.leaveType))
-        : 'sick';
+        ? (pending.leaveTypeId || attendance.leaveTypeId || getLeaveTypeIdByName(pending.leaveType || attendance.leaveType) || leaveTypes.value[0]?._id || '')
+        : (leaveTypes.value[0]?._id || '');
 
     leaveModal.value.studentId = studentId;
     leaveModal.value.mode = mode;
@@ -530,8 +513,8 @@ const createLeaveRequest = async () => {
         return;
     }
 
-    const leaveTypeId = leaveTypeIdMap.value[leaveType];
-    const leaveTypeName = getLeaveTypeLabel(leaveType);
+    const leaveTypeId = leaveType;
+    const leaveTypeName = getLeaveTypeNameById(leaveTypeId);
     const startTime = leaveModal.value.form.startTime || '';
     const endTime = leaveModal.value.form.endTime || '';
 
@@ -582,6 +565,7 @@ const createLeaveRequest = async () => {
             localAttendanceData.value[studentId] = {
                 status: 'leave',
                 leaveType: leaveTypeName,
+                leaveTypeId,
                 remark: reason,
                 leaveRequestId,
                 leaveStatus,
@@ -592,7 +576,7 @@ const createLeaveRequest = async () => {
                     requestId: leaveRequestId,
                     startDate: leaveStartDate,
                     endDate: leaveEndDate,
-                    leaveTypeKey: leaveType,
+                    leaveTypeId,
                     leaveType: leaveTypeName,
                     startTime,
                     endTime,

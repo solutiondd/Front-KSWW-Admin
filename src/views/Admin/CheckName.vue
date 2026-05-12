@@ -11,7 +11,6 @@
                     </div>
                 </div>
 
-                <!-- Filter Role and Search -->
                 <div class="grid grid-cols-2 gap-3 gap-y-3 items-end lg:grid-cols-4 lg:gap-4">
                     <div class="w-full">
                         <label class="block text-sm font-medium text-gray-700 mb-2">ค้นหาชื่อ/รหัส</label>

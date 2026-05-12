@@ -47,7 +47,6 @@
         </div>
 
         <div class="">
-            <!-- <h2 class="text-lg font-bold mb-4">รายการใบลา</h2> -->
             <LeaveRequest :filters="filters" />
         </div>
     </div>

@@ -4,7 +4,7 @@
             <span class="loading loading-spinner loading-lg"></span>
         </div>
 
-        <div v-else class="bg-white rounded-lg shadow-lg overflow-x-auto">
+        <div v-else class="bg-white rounded-lg shadow overflow-x-auto">
             <table class="table table-zebra w-full text-sm">
                 <thead>
                     <tr class="bg-primary text-primary-content">
@@ -121,13 +121,11 @@ const loadLeaveRequests = async () => {
             status: props.filters.status ?? '',
         });
 
-        // Filter by role in user_id if selected
         let data = response.data || response;
         if (props.filters.role) {
             data = data.filter((item) => item.user_id?.role === props.filters.role);
         }
 
-        // Filter by name and employee_id if search is provided
         if (props.filters.search) {
             const search = props.filters.search.toLowerCase();
             data = data.filter(
@@ -146,9 +144,7 @@ const loadLeaveRequests = async () => {
     }
 };
 
-// Watch for filter changes
 watch(() => props.filters, loadLeaveRequests, { deep: true });
 
-// Initial load
 loadLeaveRequests();
 </script>
