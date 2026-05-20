@@ -110,8 +110,8 @@
 
             <div v-if="totalPages > 1" class="flex justify-center mt-6">
                 <div class="join">
-                    <button class="join-item btn btn-sm bg-transparent border-none"
-                        @click="changePage(1)" :disabled="currentPage === 1">
+                    <button class="join-item btn btn-sm bg-transparent border-none" @click="changePage(1)"
+                        :disabled="currentPage === 1">
                         «
                     </button>
                     <button class="join-item btn btn-sm bg-transparent border-none" @click="changePage(currentPage - 1)"
@@ -127,8 +127,8 @@
                         :disabled="currentPage === totalPages">
                         ›
                     </button>
-                    <button class="join-item btn btn-sm bg-transparent border-none"
-                        @click="changePage(totalPages)" :disabled="currentPage === totalPages">
+                    <button class="join-item btn btn-sm bg-transparent border-none" @click="changePage(totalPages)"
+                        :disabled="currentPage === totalPages">
                         »
                     </button>
                 </div>
@@ -215,7 +215,12 @@ const fetchData = async () => {
         const response = await ModelingService.getModelings(params);
 
         if (response.message === "Success") {
-            modelings.value = response.data;
+            const rows = Array.isArray(response.data) ? response.data : [];
+            modelings.value = rows.map((row) => ({
+                ...row,
+                rfid: row?.rfid,
+                guardian_phone: row?.guardian_phone
+            }));
             totalItems.value = response.total_items || response.data.length;
             totalPages.value = response.total_pages || 1;
         }

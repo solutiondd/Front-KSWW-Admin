@@ -57,6 +57,9 @@
                                 <p v-if="ts.similarity !== undefined" class="text-xs text-gray-500 text-center mt-1">
                                     ความเหมือน: {{ ts.similarity }}%
                                 </p>
+                                <p v-if="ts.usecase" class="text-xs text-gray-500 text-center mt-1">
+                                    {{ ts.usecase }}
+                                </p>
                             </div>
                         </div>
                     </div>

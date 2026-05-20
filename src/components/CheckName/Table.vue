@@ -42,13 +42,13 @@
                         </td>
                         <td class="text-center align-middle max-[444px]:px-1">
                             <div v-if="localPendingLeaveApprovals[student._id]" class="dropdown dropdown-center">
-                                <button
+                                <button type="button" tabindex="0"
                                     class="btn btn-sm max-[444px]:btn-xs btn-ghost w-full justify-center border-0 shadow-none bg-transparent hover:bg-base-200 max-[444px]:min-h-7 max-[444px]:h-7 max-[444px]:px-1">
                                     <span class="badge badge-warning gap-2 max-[444px]:badge-xs">
                                         รออนุมัติ
                                     </span>
                                 </button>
-                                <ul
+                                <ul tabindex="0"
                                     class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-[444px]:w-36 max-[444px]:right-0 max-[444px]:left-auto">
                                     <li>
                                         <button type="button" :disabled="autoSaving"
@@ -110,7 +110,7 @@
                                 ลา
                             </span>
                             <div v-else class="dropdown dropdown-center">
-                                <button
+                                <button type="button" tabindex="0"
                                     class="btn btn-sm max-[444px]:btn-xs btn-ghost w-full justify-center border-0 shadow-none bg-transparent hover:bg-base-200 max-[444px]:min-h-7 max-[444px]:h-7 max-[444px]:px-1">
                                     <span v-if="displayAttendanceStatus(student._id) === 'absent'"
                                         class="inline-flex items-center justify-center rounded-full bg-error px-3 py-1 text-xs font-medium leading-none text-error-content whitespace-nowrap max-[444px]:px-2 max-[444px]:py-0.5 max-[444px]:text-[10px]">
@@ -120,7 +120,7 @@
                                         ว่าง
                                     </span>
                                 </button>
-                                <ul
+                                <ul tabindex="0"
                                     class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-[444px]:w-36 max-[444px]:right-0 max-[444px]:left-auto">
                                     <li>
                                         <button type="button" class="max-[444px]:text-xs max-[444px]:px-2"
@@ -552,7 +552,6 @@ const createLeaveRequest = async () => {
             });
             leaveRequestId = response?.data?._id || response?._id || null;
 
-            // Teacher-created leave from attendance screen should be approved immediately.
             if (leaveRequestId) {
                 await leaveService.approveLeaveRequest(leaveRequestId, 'อนุมัติการลา');
                 leaveStatus = 'approved';

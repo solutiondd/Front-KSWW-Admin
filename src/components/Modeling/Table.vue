@@ -252,6 +252,8 @@ const handleEdit = (item) => {
             code: item.userid,
             grade: item.grade,
             room: item.classroom,
+            rfid: item.rfid,
+            guardian_phone: item.guardian_phone,
             picture: pictureUrl
         });
     } else {
@@ -261,6 +263,8 @@ const handleEdit = (item) => {
             userid: item.userid,
             position: item.position,
             department: item.department,
+            rfid: item.rfid,
+            guardian_phone: item.guardian_phone,
             picture: pictureUrl
         });
     }

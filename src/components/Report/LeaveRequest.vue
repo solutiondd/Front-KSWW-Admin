@@ -75,6 +75,10 @@ const loading = ref(false);
 const leaveRequests = ref([]);
 const leaveReqDetailRef = ref(null);
 
+const residentRole = localStorage.getItem('residentRole') || '';
+const teacherGrade = localStorage.getItem('grade') || '';
+const teacherClassroom = localStorage.getItem('classroom') || '';
+
 const formatRole = (role) => {
     if (role === 'student') return 'นักเรียน';
     if (role === 'teacher') return 'ครู';
@@ -115,11 +119,18 @@ const openDetail = (request) => {
 const loadLeaveRequests = async () => {
     loading.value = true;
     try {
-        const response = await leaveService.getLeaveRequests({
+        let filters = {
             start_date: props.filters.start_date || '',
             end_date: props.filters.end_date || '',
             status: props.filters.status ?? '',
-        });
+        };
+
+        if (residentRole === 'teacher' && teacherGrade && teacherClassroom) {
+            filters.grade = teacherGrade;
+            filters.classroom = teacherClassroom;
+        }
+
+        const response = await leaveService.getLeaveRequests(filters);
 
         let data = response.data || response;
         if (props.filters.role) {
@@ -132,6 +143,14 @@ const loadLeaveRequests = async () => {
                 (item) =>
                     item.user_id?.name?.toLowerCase().includes(search) ||
                     item.user_id?.userid?.toLowerCase().includes(search)
+            );
+        }
+
+        if (residentRole === 'teacher' && teacherGrade && teacherClassroom) {
+            data = data.filter(
+                (item) =>
+                    item.user_id?.grade === teacherGrade &&
+                    item.user_id?.classroom === teacherClassroom
             );
         }
 

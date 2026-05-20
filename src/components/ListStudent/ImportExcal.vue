@@ -29,8 +29,10 @@
                         class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
                     <p v-if="imageFiles.length" class="text-xs text-success mt-1">รูปภาพที่เลือก: {{ imageFiles.length
                         }} ไฟล์</p>
-                    <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพเป็นรหัสนักเรียน เช่น <b>6200.jpg</b>
-                        เพื่อให้ระบบแมปข้อมูลอัตโนมัติ</p>
+                    <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพให้ตรงกับคอลัมน์ ชื่อรูป เช่น
+                        <b>image001.jpg</b>
+                        เพื่อให้ระบบแมปข้อมูลอัตโนมัติ
+                    </p>
                 </div>
             </div>
 
@@ -51,8 +53,10 @@
                                 <th>คำนำหน้า</th>
                                 <th>ชื่อ</th>
                                 <th>นามสกุล</th>
+                                <th>รหัสบัตร</th>
                                 <th>ชั้นปี</th>
                                 <th>ห้อง</th>
+                                <th>เบอร์โทรผู้ปกครอง</th>
                                 <th>ชื่อรูปภาพ</th>
                             </tr>
                         </thead>
@@ -62,13 +66,24 @@
                                 <td>{{ student.pre_name }}</td>
                                 <td>{{ student.first_name }}</td>
                                 <td>{{ student.last_name }}</td>
+                                <td>{{ student.rfid || '-' }}</td>
                                 <td>{{ student.grade }}</td>
                                 <td>{{ student.classroom }}</td>
-                                <td>{{ student.imageName || '-' }}</td>
+                                <td>{{ student.guardian_phone || '-' }}</td>
+                                <td>
+                                    <span
+                                        :class="student.imageMatched ? 'text-success font-semibold' : 'text-error font-semibold'">
+                                        {{ student.imageName || '-' }}
+                                    </span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+                <p class="text-xs mt-2">
+                    <span class="text-success font-semibold">สีเขียว</span> = จับคู่ไฟล์รูปได้,
+                    <span class="text-error font-semibold">สีแดง</span> = ยังไม่พบไฟล์รูปที่ตรงกับคอลัมน์ชื่อรูป
+                </p>
                 <div class="flex justify-center items-center gap-2 mt-2">
                     <button class="btn btn-xs" @click="currentPage--" :disabled="currentPage === 1">‹</button>
                     <span class="text-xs">หน้า {{ currentPage }} / {{ totalPages }}</span>
@@ -201,9 +216,9 @@ function previewExcel() {
     previewData.value = []
     currentPage.value = 1
 
-    const getImageName = (userid) => {
-        userid = userid?.toString().trim();
-        const found = imageFiles.value.find(file => file.name.split('.')[0].toString().trim() === userid);
+    const getImageName = (key) => {
+        key = key?.toString().trim();
+        const found = imageFiles.value.find(file => file.name.split('.')[0].toString().trim() === key);
         return found ? found.name : '';
     }
 
@@ -221,14 +236,32 @@ function previewExcel() {
             } else {
                 previewData.value = json.map(row => {
                     const userid = (mapHeader('รหัส', row) || mapHeader('userid', row) || '').toString().trim();
+                    const imageNameFromSheet = (
+                        mapHeader('ชื่อรูป', row) ||
+                        mapHeader('ชื่อรูปภาพ', row) ||
+                        mapHeader('image_name', row) ||
+                        mapHeader('imageName', row)
+                    )?.toString().trim() || '';
+
+                    const imageLookupKey = (imageNameFromSheet || userid)
+                        .toString()
+                        .trim()
+                        .replace(/\.[^/.]+$/, '');
+
+                    const matchedImageName = getImageName(imageLookupKey);
+                    const imageMatched = Boolean(matchedImageName);
+
                     return {
                         userid,
                         pre_name: mapHeader('คำนำหน้า', row) || mapHeader('pre_name', row) || '',
                         first_name: mapHeader('ชื่อ', row) || mapHeader('first_name', row) || '',
                         last_name: mapHeader('นามสกุล', row) || mapHeader('last_name', row) || '',
+                        rfid: (mapHeader('รหัสบัตร (rfid)', row) || mapHeader('rfid', row) || '').toString().trim(),
                         grade: mapHeader('ชั้นปี', row) || mapHeader('grade', row) || '',
                         classroom: mapHeader('ห้อง', row) || mapHeader('classroom', row) || '',
-                        imageName: getImageName(userid)
+                        guardian_phone: (mapHeader('เบอร์โทรผู้ปกครอง', row) || mapHeader('guardian_phone', row) || mapHeader('parent_phone', row) || '').toString().trim(),
+                        imageName: matchedImageName || imageNameFromSheet,
+                        imageMatched
                     }
                 })
             }
@@ -278,6 +311,20 @@ async function handleImport() {
             return val;
         }
 
+        function cleanGuardianPhone(val) {
+            if (val === undefined || val === null) return '';
+            const text = String(val).trim();
+            if (!text || text === '-') return '';
+            return text;
+        }
+
+        function cleanRfid(val) {
+            if (val === undefined || val === null) return '';
+            const text = String(val).trim();
+            if (!text || text === '-') return '';
+            return text;
+        }
+
         const importedStudents = [];
         const failedStudents = [];
         for (const student of previewData.value) {
@@ -290,8 +337,17 @@ async function handleImport() {
 
             const cleanedStudent = {
                 ...student,
-                last_name: cleanLastName(student.last_name)
+                last_name: cleanLastName(student.last_name),
+                guardian_phone: cleanGuardianPhone(student.guardian_phone),
+                rfid: cleanRfid(student.rfid)
             };
+
+            const imageNameKey = (cleanedStudent.imageName || '')
+                .toString()
+                .trim()
+                .replace(/\.[^/.]+$/, '');
+
+            const resolvedImageFile = imageMap[imageNameKey] || imageMap[cleanedStudent.userid];
 
             let formData = {};
             if (existing && existing.message === 'Success' && existing.data && existing.data._id) {
@@ -305,7 +361,9 @@ async function handleImport() {
                 if (cleanedStudent.last_name) formData.last_name = cleanedStudent.last_name;
                 if (cleanedStudent.grade) formData.grade = cleanedStudent.grade;
                 if (cleanedStudent.classroom) formData.classroom = cleanedStudent.classroom;
-                if (imageMap[cleanedStudent.userid]) formData.picture = imageMap[cleanedStudent.userid];
+                if (cleanedStudent.guardian_phone) formData.guardian_phone = cleanedStudent.guardian_phone;
+                formData.rfid = cleanedStudent.rfid;
+                if (resolvedImageFile) formData.picture = resolvedImageFile;
                 try {
                     const response = await studentService.updateStudent(oldData._id, formData);
                     if (response.message === 'Success') {
@@ -333,7 +391,9 @@ async function handleImport() {
                     last_name: cleanedStudent.last_name,
                     grade: cleanedStudent.grade,
                     classroom: cleanedStudent.classroom,
-                    picture: imageMap[cleanedStudent.userid] || null
+                    guardian_phone: cleanedStudent.guardian_phone,
+                    rfid: cleanedStudent.rfid,
+                    picture: resolvedImageFile || null
                 };
                 try {
                     const response = await studentService.createStudent(formData);

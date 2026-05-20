@@ -47,6 +47,26 @@
                         class="input input-bordered w-full bg-base-200" disabled />
                 </div> -->
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Username อุปกรณ์</span>
+                            <span class="label-text-alt text-base-content/60">(ไม่บังคับ)</span>
+                        </label>
+                        <input v-model="formData.device_username" type="text" placeholder="กรอก Username"
+                            class="input input-bordered w-full" />
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Password อุปกรณ์</span>
+                            <span class="label-text-alt text-base-content/60">(ไม่บังคับ)</span>
+                        </label>
+                        <input v-model="formData.device_password" type="password" placeholder="กรอก Password"
+                            class="input input-bordered w-full" />
+                    </div>
+                </div>
+
                 <div class="form-control">
                     <label class="label cursor-pointer justify-start gap-3">
                         <input v-model="formData.use_attendance_time" type="checkbox" class="toggle toggle-warning" />
@@ -103,10 +123,24 @@ const currentDevice = ref(null)
 const formData = ref({
     location: '',
     gate_type: '',
+    device_username: '',
+    device_password: '',
     attendance_start_time: '',
     attendance_end_time: '',
     use_attendance_time: false
 })
+
+const encodeDeviceKey = (username, password) => {
+    if (!username && !password) return ''
+
+    const credential = `${username}:${password}`
+    const bytes = new TextEncoder().encode(credential)
+    let binary = ''
+    bytes.forEach((byte) => {
+        binary += String.fromCharCode(byte)
+    })
+    return btoa(binary)
+}
 
 const parseUseAttendanceTime = (value) => {
     if (typeof value === 'boolean') return value
@@ -120,6 +154,8 @@ const openModal = (device) => {
     formData.value = {
         location: device.location || '',
         gate_type: device.gate_type || '',
+        device_username: '',
+        device_password: '',
         attendance_start_time: device.attendance_start_time || '',
         attendance_end_time: device.attendance_end_time || '',
         use_attendance_time: parseUseAttendanceTime(device.use_attendance_time)
@@ -141,6 +177,8 @@ const resetForm = () => {
     formData.value = {
         location: '',
         gate_type: '',
+        device_username: '',
+        device_password: '',
         attendance_start_time: '',
         attendance_end_time: '',
         use_attendance_time: false
@@ -148,9 +186,13 @@ const resetForm = () => {
 }
 
 const handleSubmit = () => {
+    const { device_username, device_password, ...payload } = formData.value
+    const encodedDeviceKey = encodeDeviceKey(device_username, device_password)
+
     emit('success', {
         id: currentDevice.value._id,
-        ...formData.value
+        ...payload,
+        ...(encodedDeviceKey ? { device_key: encodedDeviceKey } : {})
     })
 }
 

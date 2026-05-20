@@ -219,6 +219,7 @@ const fetchTeachers = async () => {
                 userid: teacher.userid,
                 name: teacher.name,
                 code: teacher.userid,
+                rfid: teacher.rfid,
                 department: teacher.department || '-',
                 position: teacher.position || '-',
                 email: teacher.userid + '@ksww.ac.th',

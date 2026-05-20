@@ -19,6 +19,11 @@
                     <div class="font-bold text-lg">{{ student.name }}</div>
                     <div class="text-sm text-base-content/70">รหัส: {{ studentCode }}</div>
                     <div class="text-sm">ระดับชั้น: {{ student.grade }} ห้อง {{ studentRoom }}</div>
+                    <div v-if="studentGuardianPhone" class="text-sm text-base-content/70">
+                        เบอร์ผู้ปกครอง: {{ studentGuardianPhone }}
+                    </div>
+                    <div v-if="student?.rfid !== undefined && student?.rfid !== null && String(student.rfid).trim() !== ''"
+                        class="text-sm text-base-content/70">rfid: {{ student.rfid }}</div>
                     <div class="mt-1">
                         <button v-if="canOpenConduct" type="button" class="badge badge-sm font-semibold cursor-pointer"
                             :class="getScoreBadgeClass(studentScore)" @click="goToConduct"
@@ -122,6 +127,11 @@ const yearOptions = computed(() => {
 
 const studentCode = computed(() => props.student.code || props.student.userid || props.student.id || '-')
 const studentRoom = computed(() => props.student.room || props.student.classroom || '-')
+const studentGuardianPhone = computed(() => {
+    const value = props.student?.guardian_phone || props.student?.parent_phone || props.student?.phone || ''
+    const text = String(value).trim()
+    return text && text !== '-' ? text : ''
+})
 const studentScore = computed(() => {
     const value = Number(props.student?.score)
     return Number.isFinite(value) ? value : 100
@@ -391,7 +401,6 @@ const fetchAttendance = async () => {
         holidays.value = Array.isArray(holidaysRes.data) ? holidaysRes.data : []
 
         const yearsToFetch = [year]
-        // Term 2 can span into Jan-Mar of the next calendar year, so only then we also load previous year.
         if (month <= 2) {
             yearsToFetch.push(year - 1)
         }

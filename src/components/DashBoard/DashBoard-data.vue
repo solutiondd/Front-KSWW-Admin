@@ -15,7 +15,7 @@
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">รายการเข้าเรียน{{ attendanceRole === 'teacher' ? 'ครู' : 'นักเรียน'
-                }} วันที่ {{ displayDate }}</h3>
+                    }} วันที่ {{ displayDate }}</h3>
                 <div v-if="attendanceRole === 'student'">
                     <Attendance :role="'student'" :date="selectedDate" v-if="residentRole !== 'teacher'" />
                     <Attendance :role="'student'" :date="selectedDate" v-else :fixed-grade="localGrade"
@@ -55,7 +55,7 @@
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">รายการที่ไม่ได้สแกน{{ missedRole === 'teacher' ? 'ครู' : 'นักเรียน'
-                }} วันที่
+                    }} วันที่
                     {{ displayDate }}</h3>
 
                 <MissedTable :data="missedData" :pagination="missedPagination" :hide-export="true"
@@ -272,7 +272,6 @@
                 </div>
             </transition>
         </div>
-        <!-- <AttendanceDetail ref="detailModal" /> -->
     </div>
 </template>
 
@@ -416,12 +415,28 @@ const showTeacherAbsentStat = ref(false)
 
 async function fetchLeaveSummaryByDate() {
     try {
-        const response = await leaveService.getLeaveRequests({
+        const filters = {
             start_date: selectedDate.value,
             end_date: selectedDate.value,
             status: 'approved',
-        })
-        const data = response?.data || response || []
+        }
+
+        if (residentRole.value === 'teacher' && localGrade.value && localClassroom.value) {
+            filters.grade = localGrade.value
+            filters.classroom = localClassroom.value
+        }
+
+        const response = await leaveService.getLeaveRequests(filters)
+        let data = response?.data || response || []
+
+        if (residentRole.value === 'teacher' && localGrade.value && localClassroom.value) {
+            data = data.filter(
+                (item) =>
+                    item.user_id?.grade === localGrade.value &&
+                    String(item.user_id?.classroom ?? '') === String(localClassroom.value)
+            )
+        }
+
         studentLeave.value = data.filter((item) => item.user_id?.role === 'student').length
         teacherLeave.value = data.filter((item) => item.user_id?.role === 'teacher').length
     } catch (e) {

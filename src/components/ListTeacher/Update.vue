@@ -111,6 +111,16 @@
 
                     <div class="form-control w-full">
                         <label class="label">
+                            <span class="label-text">เลขบัตร RFID <span class="text-gray-500">(ไม่บังคับ)</span></span>
+                        </label>
+                        <input v-model="formData.rfid" type="text" class="input input-bordered w-full"
+                            @input="validateRfid" autocomplete="off" />
+                        <label v-if="rfidError" class="label"><span class="label-text-alt text-error">{{ rfidError
+                        }}</span></label>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label">
                             <span class="label-text">สถานะ</span>
                         </label>
                         <select v-model="formData.status" class="select select-bordered w-full" required>
@@ -166,6 +176,7 @@ const fileInputRef = ref(null)
 const firstNameError = ref('')
 const lastNameError = ref('')
 const useridError = ref('')
+const rfidError = ref('')
 const formData = ref({
     userid: '',
     pre_name: '',
@@ -173,6 +184,7 @@ const formData = ref({
     last_name: '',
     position: '',
     department: '',
+    rfid: '',
     status: '',
     picture: null
 })
@@ -205,9 +217,11 @@ const openModal = async (teacher) => {
         position: teacher.position,
         department: teacher.department,
         status: 'ปกติ',
-        picture: null
+        picture: null, 
+        rfid: teacher.rfid !== undefined && teacher.rfid !== null ? String(teacher.rfid) : ''
     }
     useridError.value = ''
+    rfidError.value = ''
 
     if (teacher.picture) {
         try {
@@ -237,6 +251,7 @@ const openModal = async (teacher) => {
 
 const closeModal = () => {
     modalRef.value.close()
+    rfidError.value = ''
     currentImage.value = ''
     previewImage.value = ''
     fileError.value = ''
@@ -348,12 +363,26 @@ const validateLastName = () => {
     }
 }
 
+const validateRfid = () => {
+    if (!formData.value.rfid) {
+        rfidError.value = ''
+        return true
+    }
+    if (!/^\d+$/.test(formData.value.rfid)) {
+        rfidError.value = 'เลขบัตรต้องเป็นตัวเลขเท่านั้น'
+        return false
+    }
+    rfidError.value = ''
+    return true
+}
+
 const isFormValid = computed(() => {
     return (
         !firstNameError.value &&
         !lastNameError.value &&
         formData.value.first_name &&
         formData.value.last_name &&
+        !rfidError.value &&
         !fileError.value
     )
 })
@@ -370,6 +399,7 @@ const removeImage = () => {
 const handleSubmit = async () => {
     validateFirstName()
     validateLastName()
+    if (!validateRfid()) return
     useridError.value = ''
     if (!isFormValid.value) {
         const { default: Swal } = await import('sweetalert2')

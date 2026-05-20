@@ -21,13 +21,14 @@
                         <th class="text-center">ชั้นเรียน/แผนก</th>
                         <th class="text-center">วันที่</th>
                         <th class="text-center">เข้า</th>
+                        <th v-if="featureFlags.attendance.enableLineupColumn" class="text-center">เข้าแถว</th>
                         <th class="text-center">ออก</th>
                         <th class="text-center">รายละเอียด</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="data.length === 0">
-                        <td colspan="9" class="text-center py-8 text-base-content/60">
+                        <td colspan="10" class="text-center py-8 text-base-content/60">
                             ไม่พบข้อมูล
                         </td>
                     </tr>
@@ -58,16 +59,22 @@
                                 </td>
                                 <td class="text-center">{{ formatDate(item.attendances[0].date) }}</td>
                                 <td class="text-center">
-                                    <span v-if="extractEntryExitAttendance(item.attendances[0]).entry"
+                                    <span v-if="extractAttendanceByUsecase(item.attendances[0]).entry"
                                         class="badge badge-success badge-sm">{{
-                                            extractEntryExitAttendance(item.attendances[0]).entry.time }}</span>
-                                    <span v-else class="badge badge-error badge-sm">ไม่มีเข้า</span>
+                                            extractAttendanceByUsecase(item.attendances[0]).entry.time }}</span>
+                                    <span v-else class="badge badge-error badge-sm">ไม่มี</span>
+                                </td>
+                                <td v-if="featureFlags.attendance.enableLineupColumn" class="text-center">
+                                    <span v-if="extractAttendanceByUsecase(item.attendances[0]).lineup"
+                                        class="badge badge-success badge-sm">{{
+                                            extractAttendanceByUsecase(item.attendances[0]).lineup.time }}</span>
+                                    <span v-else class="badge badge-error badge-sm">ไม่มี</span>
                                 </td>
                                 <td class="text-center">
-                                    <span v-if="extractEntryExitAttendance(item.attendances[0]).exit"
+                                    <span v-if="extractAttendanceByUsecase(item.attendances[0]).exit"
                                         class="badge badge-success badge-sm">{{
-                                            extractEntryExitAttendance(item.attendances[0]).exit.time }}</span>
-                                    <span v-else class="badge badge-error badge-sm">ไม่มีออก</span>
+                                            extractAttendanceByUsecase(item.attendances[0]).exit.time }}</span>
+                                    <span v-else class="badge badge-error badge-sm">ไม่มี</span>
                                 </td>
                                 <td class="text-center">
                                     <button @click="$emit('viewDetail', item, item.attendances[0])"
@@ -91,16 +98,22 @@
                                     <td class="text-center"></td>
                                     <td class="text-center">{{ formatDate(att.date) }}</td>
                                     <td class="text-center">
-                                        <span v-if="extractEntryExitAttendance(att).entry"
+                                        <span v-if="extractAttendanceByUsecase(att).entry"
                                             class="badge badge-success badge-sm">{{
-                                                extractEntryExitAttendance(att).entry.time }}</span>
-                                        <span v-else class="badge badge-error badge-sm">ไม่มีเข้า</span>
+                                                extractAttendanceByUsecase(att).entry.time }}</span>
+                                        <span v-else class="badge badge-error badge-sm">ไม่มี</span>
+                                    </td>
+                                    <td v-if="featureFlags.attendance.enableLineupColumn" class="text-center">
+                                        <span v-if="extractAttendanceByUsecase(att).lineup"
+                                            class="badge badge-success badge-sm">{{
+                                                extractAttendanceByUsecase(att).lineup.time }}</span>
+                                        <span v-else class="badge badge-error badge-sm">ไม่มี</span>
                                     </td>
                                     <td class="text-center">
-                                        <span v-if="extractEntryExitAttendance(att).exit"
+                                        <span v-if="extractAttendanceByUsecase(att).exit"
                                             class="badge badge-success badge-sm">{{
-                                                extractEntryExitAttendance(att).exit.time }}</span>
-                                        <span v-else class="badge badge-error badge-sm">ไม่มีออก</span>
+                                                extractAttendanceByUsecase(att).exit.time }}</span>
+                                        <span v-else class="badge badge-error badge-sm">ไม่มี</span>
                                     </td>
                                     <td class="text-center">
                                         <button @click="$emit('viewDetail', item, att)"
@@ -141,8 +154,10 @@
                                 <span v-else>{{ item.grade }}/{{ item.classroom }}</span>
                             </td>
                             <td class="text-center">-</td>
-                            <td class="text-center"><span class="badge badge-error badge-sm">ไม่มีเข้า</span></td>
-                            <td class="text-center"><span class="badge badge-error badge-sm">ไม่มีออก</span></td>
+                            <td class="text-center"><span class="badge badge-error badge-sm">ไม่มี</span></td>
+                            <td v-if="featureFlags.attendance.enableLineupColumn" class="text-center"><span
+                                    class="badge badge-error badge-sm">ไม่มี</span></td>
+                            <td class="text-center"><span class="badge badge-error badge-sm">ไม่มี</span></td>
                             <td class="text-center">
                                 <button @click="$emit('viewDetail', item)" class="btn btn-sm btn-info btn-outline">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
@@ -204,20 +219,27 @@
                         <div class="flex items-center gap-2 mb-2">
                             <span class="text-base-content/80">{{ formatDate(att.date) }}</span>
                         </div>
-                        <div class="flex gap-2 mb-2">
+                        <div class="grid grid-cols-3 gap-2 mb-2">
                             <div class="flex-1 text-center">
                                 <span class="text-xs text-base-content/60 block">เข้า</span>
-                                <span v-if="extractEntryExitAttendance(att).entry"
+                                <span v-if="extractAttendanceByUsecase(att).entry"
                                     class="badge badge-success badge-sm">{{
-                                        extractEntryExitAttendance(att).entry.time }}</span>
-                                <span v-else class="badge badge-error badge-sm">ไม่มีเข้า</span>
+                                        extractAttendanceByUsecase(att).entry.time }}</span>
+                                <span v-else class="badge badge-error badge-sm">ไม่มี</span>
+                            </div>
+                            <div v-if="featureFlags.attendance.enableLineupColumn" class="flex-1 text-center">
+                                <span class="text-xs text-base-content/60 block">เข้าแถว</span>
+                                <span v-if="extractAttendanceByUsecase(att).lineup"
+                                    class="badge badge-success badge-sm">{{
+                                        extractAttendanceByUsecase(att).lineup.time }}</span>
+                                <span v-else class="badge badge-error badge-sm">ไม่มี</span>
                             </div>
                             <div class="flex-1 text-center">
                                 <span class="text-xs text-base-content/60 block">ออก</span>
-                                <span v-if="extractEntryExitAttendance(att).exit"
+                                <span v-if="extractAttendanceByUsecase(att).exit"
                                     class="badge badge-success badge-sm">{{
-                                        extractEntryExitAttendance(att).exit.time }}</span>
-                                <span v-else class="badge badge-error badge-sm">ไม่มีออก</span>
+                                        extractAttendanceByUsecase(att).exit.time }}</span>
+                                <span v-else class="badge badge-error badge-sm">ไม่มี</span>
                             </div>
                         </div>
                         <button @click="$emit('viewDetail', item, att)" class="btn btn-sm btn-info btn-outline w-full">
@@ -233,14 +255,19 @@
                     </div>
                 </template>
                 <template v-else>
-                    <div class="flex gap-2 mb-2">
+                    <div class="grid gap-2 mb-2"
+                        :class="featureFlags.attendance.enableLineupColumn ? 'grid-cols-3' : 'grid-cols-2'">
                         <div class="flex-1 text-center">
                             <span class="text-xs text-base-content/60 block">เข้า</span>
-                            <span class="badge badge-error badge-sm">ไม่มีเข้า</span>
+                            <span class="badge badge-error badge-sm">ไม่มี</span>
+                        </div>
+                        <div v-if="featureFlags.attendance.enableLineupColumn" class="flex-1 text-center">
+                            <span class="text-xs text-base-content/60 block">เข้าแถว</span>
+                            <span class="badge badge-error badge-sm">ไม่มี</span>
                         </div>
                         <div class="flex-1 text-center">
                             <span class="text-xs text-base-content/60 block">ออก</span>
-                            <span class="badge badge-error badge-sm">ไม่มีออก</span>
+                            <span class="badge badge-error badge-sm">ไม่มี</span>
                         </div>
                     </div>
                     <button @click="$emit('viewDetail', item)" class="btn btn-sm btn-info btn-outline w-full">
@@ -259,6 +286,9 @@
     </div>
 
     <div class="mt-4 flex flex-wrap gap-4 text-xs">
+        <div class="flex items-center gap-2 text-white">
+            <span class="badge badge-warning badge-xs">เข้าแถว</span> เวลาแรกจาก person_confirmation
+        </div>
         <div class="flex items-center gap-2 text-white">
             <span class="badge badge-success badge-xs">เวลา</span> แสดงเวลาที่เข้า/ออก
         </div>
@@ -311,9 +341,26 @@
 import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import reportApi from '../../api/report.js'
+import featureFlags from '../../config/featureFlags.js'
 import { ref, computed } from 'vue'
 
 const loadingExport = ref(false)
+
+function normalizeCellValue(value) {
+    if (value === null || value === undefined || value === '') return '-'
+    if (typeof value === 'object') return JSON.stringify(value)
+    return value
+}
+
+function formatClassOrDepartment(item) {
+    if (item?.department !== null && item?.department !== undefined && item?.department !== '') {
+        return normalizeCellValue(item.department)
+    }
+    const grade = normalizeCellValue(item?.grade)
+    const classroom = normalizeCellValue(item?.classroom)
+    return `${grade}/${classroom}`
+}
+
 async function exportAllToExcel() {
     if (loadingExport.value) return
     loadingExport.value = true
@@ -356,32 +403,68 @@ async function exportAllToExcel() {
             return 'มาปกติ'
         }
 
+        function getFirstTimeByUsecase(att, usecase) {
+            if (!att || !att.timeStamps || att.timeStamps.length === 0) return '-'
+            const sorted = att.timeStamps
+                .filter(ts => ts.timestamp)
+                .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+            const found = sorted.find(ts => ts.usecase === usecase)
+            return found ? found.timestamp.split(' ')[1] : '-'
+        }
+
+        function getLegacyEntryTime(att) {
+            if (!att || !att.timeStamps || att.timeStamps.length === 0) return '-'
+            const sorted = att.timeStamps
+                .filter(ts => ts.timestamp)
+                .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+            return sorted[0] ? sorted[0].timestamp.split(' ')[1] : '-'
+        }
+
+        function getLegacyExitTime(att) {
+            if (!att || !att.timeStamps || att.timeStamps.length === 0) return '-'
+            const sorted = att.timeStamps
+                .filter(ts => ts.timestamp)
+                .sort((a, b) => a.timestamp.localeCompare(b.timestamp))
+            return sorted.length > 1 ? sorted[sorted.length - 1].timestamp.split(' ')[1] : '-'
+        }
+
         const rows = []
         allData.forEach(item => {
             if (item.attendances && item.attendances.length > 0) {
                 item.attendances.forEach(att => {
-                    rows.push({
-                        'รหัส': item.userid,
-                        'ชื่อ-สกุล': item.name,
-                        'ตำแหน่ง': item.position,
-                        'ชั้นเรียน/แผนก': item.department ? item.department : `${item.grade}/${item.classroom}`,
+                    const row = {
+                        'รหัส': normalizeCellValue(item.userid),
+                        'ชื่อ-สกุล': normalizeCellValue(item.name),
+                        'ตำแหน่ง': normalizeCellValue(item.position),
+                        'ชั้นเรียน/แผนก': formatClassOrDepartment(item),
                         'วันที่': formatDateTH(att.date),
-                        'เวลาเข้า': (att.timeStamps && att.timeStamps.length > 0) ? att.timeStamps.map(ts => ts.timestamp).sort()[0].split(' ')[1] : '-',
-                        'เวลาออก': (att.timeStamps && att.timeStamps.length > 1) ? att.timeStamps.map(ts => ts.timestamp).sort().slice(-1)[0].split(' ')[1] : '-',
+                        'เวลาเข้า': getFirstTimeByUsecase(att, 'attendance') !== '-' ? getFirstTimeByUsecase(att, 'attendance') : getLegacyEntryTime(att),
+                        'เวลาออก': getFirstTimeByUsecase(att, 'attendance') !== '-' ? getLegacyExitTime({
+                            ...att,
+                            timeStamps: att.timeStamps.filter(ts => ts.usecase === 'attendance')
+                        }) : getLegacyExitTime(att),
                         'สถานะ': getStatus(att),
-                    })
+                    }
+                    if (featureFlags.attendance.enableLineupColumn) {
+                        row['เข้าแถว'] = getFirstTimeByUsecase(att, 'person_confirmation')
+                    }
+                    rows.push(row)
                 })
             } else {
-                rows.push({
-                    'รหัส': item.userid,
-                    'ชื่อ-สกุล': item.name,
-                    'ตำแหน่ง': item.position,
-                    'ชั้นเรียน/แผนก': item.department ? item.department : `${item.grade}/${item.classroom}`,
+                const row = {
+                    'รหัส': normalizeCellValue(item.userid),
+                    'ชื่อ-สกุล': normalizeCellValue(item.name),
+                    'ตำแหน่ง': normalizeCellValue(item.position),
+                    'ชั้นเรียน/แผนก': formatClassOrDepartment(item),
                     'วันที่': '-',
                     'เวลาเข้า': '-',
                     'เวลาออก': '-',
                     'สถานะ': '-',
-                })
+                }
+                if (featureFlags.attendance.enableLineupColumn) {
+                    row['เข้าแถว'] = '-'
+                }
+                rows.push(row)
             }
         })
 
@@ -390,27 +473,28 @@ async function exportAllToExcel() {
 
         const dateRangeText = filters.start && filters.end ? `(${formatDateTH(filters.start)} - ${formatDateTH(filters.end)})` : ''
         worksheet.addRow([`รายงานข้อมูลการเข้า-ออก ${dateRangeText}`])
-        worksheet.mergeCells('A1:H1')
+        const mergeRange = featureFlags.attendance.enableLineupColumn ? 'A1:I1' : 'A1:H1'
+        worksheet.mergeCells(mergeRange)
         worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' }
         worksheet.getCell('A1').font = { bold: true }
 
-        const header = ['รหัส', 'ชื่อ-สกุล', 'ตำแหน่ง', 'ชั้นเรียน/แผนก', 'วันที่', 'เวลาเข้า', 'เวลาออก', 'สถานะ']
+        const header = ['รหัส', 'ชื่อ-สกุล', 'ตำแหน่ง', 'ชั้นเรียน/แผนก', 'วันที่', 'เวลาเข้า']
+        if (featureFlags.attendance.enableLineupColumn) {
+            header.push('เข้าแถว')
+        }
+        header.push('เวลาออก', 'สถานะ')
         worksheet.addRow(header)
 
         rows.forEach(row => {
             worksheet.addRow(header.map(h => row[h]))
         })
 
-        worksheet.columns = [
-            { width: 10 },
-            { width: 40 },
-            { width: 40 },
-            { width: 40 },
-            { width: 15 },
-            { width: 15 },
-            { width: 15 },
-            { width: 10 },
-        ]
+        const columnWidths = [10, 40, 40, 40, 15, 15]
+        if (featureFlags.attendance.enableLineupColumn) {
+            columnWidths.push(15)
+        }
+        columnWidths.push(15, 10)
+        worksheet.columns = columnWidths.map(width => ({ width }))
         worksheet.getRow(2).alignment = { horizontal: 'center', vertical: 'middle' }
         worksheet.getColumn(1).alignment = { horizontal: 'center', vertical: 'middle' }
         worksheet.getRow(2).font = { bold: true }
@@ -470,22 +554,38 @@ const displayedPages = computed(() => {
 const extractEntryExit = (item) => {
     if (!item.attendances || item.attendances.length === 0) return { entry: null, exit: null }
     const attendance = item.attendances[0]
-    if (!attendance.timeStamps || attendance.timeStamps.length === 0) return { entry: null, exit: null }
-    return extractEntryExitAttendance(attendance)
+    if (!attendance.timeStamps || attendance.timeStamps.length === 0) return { lineup: null, entry: null, exit: null }
+    return extractAttendanceByUsecase(attendance)
 }
 
-const extractEntryExitAttendance = (attendance) => {
-    if (!attendance.timeStamps || attendance.timeStamps.length === 0) return { entry: null, exit: null }
+const extractAttendanceByUsecase = (attendance) => {
+    if (!attendance.timeStamps || attendance.timeStamps.length === 0) return { lineup: null, entry: null, exit: null }
     const stamps = attendance.timeStamps.map(ts => ({
         raw: ts.timestamp,
         hour: parseInt(ts.timestamp.split(' ')[1].split(':')[0]),
         time: ts.timestamp.split(' ')[1].slice(0, 5),
         image: ts.image,
-        location: ts.location
-    }))
-    const entry = stamps.filter(s => s.hour < 12).sort((a, b) => a.raw.localeCompare(b.raw))[0] || null
+        location: ts.location,
+        usecase: ts.usecase || ''
+    })).sort((a, b) => a.raw.localeCompare(b.raw))
+
+    const lineup = stamps.find(s => s.usecase === 'person_confirmation') || null
+    const attendanceStamps = stamps.filter(s => s.usecase === 'attendance')
+
+    if (attendanceStamps.length > 0) {
+        const entry = attendanceStamps[0] || null
+        const exit = attendanceStamps.find(s => s.hour >= 12) || null
+        return { lineup, entry, exit }
+    }
+
+    const hasUsecase = stamps.some(s => !!s.usecase)
+    if (hasUsecase) {
+        return { lineup, entry: null, exit: null }
+    }
+
+    const entry = stamps.filter(s => s.hour < 12).sort((a, b) => a.raw.localeCompare(b.raw))[0] || stamps[0] || null
     const exit = stamps.filter(s => s.hour >= 12).sort((a, b) => a.raw.localeCompare(b.raw))[0] || null
-    return { entry, exit }
+    return { lineup: null, entry, exit }
 }
 
 const formatDate = (dateStr) => {

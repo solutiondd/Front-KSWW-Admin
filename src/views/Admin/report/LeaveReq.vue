@@ -11,7 +11,7 @@
             </div>
         </div>
         <div class="bg-white rounded-lg shadow p-6 mb-6 space-y-4">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
                 <div class="form-control">
                     <label class="label py-1">
                         <span class="label-text text-sm font-medium">ค้นหารหัส</span>
@@ -33,7 +33,7 @@
                     </select>
                 </div>
 
-                <div class="form-control">
+                <div v-if="residentRole !== 'teacher'" class="form-control">
                     <label class="label py-1">
                         <span class="label-text text-sm font-medium">ประเภท</span>
                     </label>
@@ -43,6 +43,16 @@
                         <option value="teacher">ครู</option>
                     </select>
                 </div>
+
+                <div v-if="residentRole === 'teacher'"
+                    class="form-control flex justify-end items-center md:items-end">
+                    <div
+                        class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
+                        <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>
+                        <span>{{ teacherGrade }}/{{ teacherClassroom }}</span>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -57,6 +67,9 @@ import { ref } from 'vue';
 import LeaveRequest from '../../../components/Report/LeaveRequest.vue';
 
 const today = new Date().toISOString().split('T')[0];
+const residentRole = localStorage.getItem('residentRole') || '';
+const teacherGrade = localStorage.getItem('grade') || '';
+const teacherClassroom = localStorage.getItem('classroom') || '';
 
 const filters = ref({
     search: '',

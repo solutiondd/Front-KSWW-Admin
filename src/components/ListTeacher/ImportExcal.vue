@@ -29,8 +29,10 @@
                         class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
                     <p v-if="imageFiles.length" class="text-xs text-success mt-1">รูปภาพที่เลือก: {{ imageFiles.length
                     }} ไฟล์</p>
-                    <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพเป็นรหัสครู เช่น <b>6200.jpg</b>
-                        เพื่อให้ระบบแมปข้อมูลอัตโนมัติ</p>
+                    <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพให้ตรงกับคอลัมน์ ชื่อรูป เช่น
+                        <b>image001.jpg</b>
+                        เพื่อให้ระบบแมปข้อมูลอัตโนมัติ
+                    </p>
                 </div>
             </div>
 
@@ -51,6 +53,7 @@
                                 <th>คำนำหน้า</th>
                                 <th>ชื่อ</th>
                                 <th>นามสกุล</th>
+                                <th>รหัสบัตร</th>
                                 <th>ตำแหน่ง</th>
                                 <th>แผนก</th>
                                 <th>ชื่อรูปภาพ</th>
@@ -62,13 +65,23 @@
                                 <td>{{ teacher.pre_name }}</td>
                                 <td>{{ teacher.first_name }}</td>
                                 <td>{{ teacher.last_name }}</td>
+                                <td>{{ teacher.rfid || '-' }}</td>
                                 <td>{{ teacher.position }}</td>
                                 <td>{{ teacher.department }}</td>
-                                <td>{{ teacher.imageName || '-' }}</td>
+                                <td>
+                                    <span
+                                        :class="teacher.imageMatched ? 'text-success font-semibold' : 'text-error font-semibold'">
+                                        {{ teacher.imageName || '-' }}
+                                    </span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+                <p class="text-xs mt-2">
+                    <span class="text-success font-semibold">สีเขียว</span> = จับคู่ไฟล์รูปได้,
+                    <span class="text-error font-semibold">สีแดง</span> = ยังไม่พบไฟล์รูปที่ตรงกับคอลัมน์ชื่อรูป
+                </p>
                 <div class="flex justify-center items-center gap-2 mt-2">
                     <button class="btn btn-xs" @click="currentPage--" :disabled="currentPage === 1">‹</button>
                     <span class="text-xs">หน้า {{ currentPage }} / {{ totalPages }}</span>
@@ -201,9 +214,9 @@ function previewExcel() {
     previewData.value = []
     currentPage.value = 1
 
-    const getImageName = (userid) => {
-        userid = userid?.toString().trim();
-        const found = imageFiles.value.find(file => file.name.split('.')[0].toString().trim() === userid);
+    const getImageName = (key) => {
+        key = key?.toString().trim();
+        const found = imageFiles.value.find(file => file.name.split('.')[0].toString().trim() === key);
         return found ? found.name : '';
     }
 
@@ -221,15 +234,32 @@ function previewExcel() {
             } else {
                 previewData.value = json.map(row => {
                     const userid = (mapHeader('รหัส', row) || mapHeader('userid', row) || '').toString().trim();
+                    const imageNameFromSheet = (
+                        mapHeader('ชื่อรูป', row) ||
+                        mapHeader('ชื่อรูปภาพ', row) ||
+                        mapHeader('image_name', row) ||
+                        mapHeader('imageName', row)
+                    )?.toString().trim() || '';
+
+                    const imageLookupKey = (imageNameFromSheet || userid)
+                        .toString()
+                        .trim()
+                        .replace(/\.[^/.]+$/, '');
+
+                    const matchedImageName = getImageName(imageLookupKey);
+                    const imageMatched = Boolean(matchedImageName);
+
                     return {
                         userid,
                         pre_name: mapHeader('คำนำหน้า', row) || mapHeader('pre_name', row) || '',
                         first_name: mapHeader('ชื่อ', row) || mapHeader('first_name', row) || '',
                         last_name: mapHeader('นามสกุล', row) || mapHeader('last_name', row) || '',
+                        rfid: (mapHeader('รหัสบัตร (rfid)', row) || mapHeader('rfid', row) || '').toString().trim(),
                         position: mapHeader('ตำแหน่ง', row) || mapHeader('position', row) || '',
                         department: mapHeader('แผนก', row) || mapHeader('department', row) || '',
                         status: 'ปกติ',
-                        imageName: getImageName(userid)
+                        imageName: matchedImageName || imageNameFromSheet,
+                        imageMatched
                     }
                 })
             }
@@ -279,13 +309,29 @@ async function handleImport() {
             return val;
         }
 
+        function cleanRfid(val) {
+            if (val === undefined || val === null) return '';
+            const text = String(val).trim();
+            if (!text || text === '-') return '';
+            return text;
+        }
+
         const importedTeachers = [];
         const failedTeachers = [];
         for (const teacher of previewData.value) {
             const cleanedTeacher = {
                 ...teacher,
-                last_name: cleanLastName(teacher.last_name)
+                last_name: cleanLastName(teacher.last_name),
+                rfid: cleanRfid(teacher.rfid)
             };
+
+            const imageNameKey = (cleanedTeacher.imageName || '')
+                .toString()
+                .trim()
+                .replace(/\.[^/.]+$/, '');
+
+            const resolvedImageFile = imageMap[imageNameKey] || imageMap[cleanedTeacher.userid];
+
             const formData = {
                 userid: cleanedTeacher.userid,
                 pre_name: cleanedTeacher.pre_name,
@@ -293,8 +339,9 @@ async function handleImport() {
                 last_name: cleanedTeacher.last_name,
                 position: cleanedTeacher.position,
                 department: cleanedTeacher.department,
+                rfid: cleanedTeacher.rfid,
                 status: 'ปกติ',
-                picture: imageMap[cleanedTeacher.userid] || null
+                picture: resolvedImageFile || null
             };
             try {
                 const response = await teacherService.createTeacher(formData);

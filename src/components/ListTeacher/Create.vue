@@ -88,7 +88,6 @@
                             <input ref="positionInputRef" v-model="positionQuery" type="text"
                                 class="input input-bordered w-full" placeholder="พิมพ์เพื่อค้นหาและเลือกตำแหน่ง..."
                                 @focus="positionOpen = true" @input="positionOpen = true" required />
-                            
                             <ul v-if="positionOpen"
                                 class="bg-base-100 rounded-box shadow-lg border absolute z-[1000] top-full left-0 mt-1 w-full max-h-60 overflow-y-auto">
                                 <li v-if="!filteredPositions.length" class="px-3 py-2 text-sm opacity-70">
@@ -112,7 +111,6 @@
                             <input ref="departmentInputRef" v-model="departmentQuery" type="text"
                                 class="input input-bordered w-full" placeholder="พิมพ์เพื่อค้นหาและเลือกแผนก..."
                                 @focus="departmentOpen = true" @input="departmentOpen = true" required />
-                            
                             <ul v-if="departmentOpen"
                                 class="bg-base-100 rounded-box shadow-lg border absolute z-[999] top-full left-0 mt-1 w-full max-h-60 overflow-y-auto">
                                 <li v-if="!filteredDepartments.length" class="px-3 py-2 text-sm opacity-70">
@@ -126,6 +124,16 @@
                                 </li>
                             </ul>
                         </div>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">เลขบัตร RFID <span class="text-gray-500">(ไม่บังคับ)</span></span>
+                        </label>
+                        <input v-model="formData.rfid" type="text"
+                            :class="['input input-bordered w-full', rfidError ? 'border-error focus:border-error' : '']"
+                            @input="validateRfid" autocomplete="off" />
+                        <div v-if="rfidError" class="text-sm text-error mt-1">{{ rfidError }}</div>
                     </div>
 
                     <div class="form-control w-full">
@@ -161,6 +169,7 @@ const previewImage = ref('')
 const fileName = ref('')
 const fileError = ref('')
 const useridError = ref('')
+const rfidError = ref('')
 
 const positionQuery = ref('')
 const positionOpen = ref(false)
@@ -177,6 +186,7 @@ const formData = ref({
     pre_name: '',
     first_name: '',
     last_name: '',
+    rfid: '',
     position: '',
     department: '',
     status: '',
@@ -238,6 +248,21 @@ const clearDepartment = () => {
     departmentOpen.value = false
 }
 
+const validateRfid = () => {
+    if (!formData.value.rfid) {
+        rfidError.value = ''
+        return true
+    }
+
+    if (!/^\d+$/.test(formData.value.rfid)) {
+        rfidError.value = 'เลขบัตรต้องเป็นตัวเลขเท่านั้น'
+        return false
+    }
+
+    rfidError.value = ''
+    return true
+}
+
 let _onDocClickPosition = null
 let _onDocClickDepartment = null
 
@@ -271,6 +296,7 @@ const openModal = () => {
         pre_name: '',
         first_name: '',
         last_name: '',
+        rfid: '',
         position: '',
         department: '',
         status: '',
@@ -280,6 +306,7 @@ const openModal = () => {
     fileName.value = ''
     fileError.value = ''
     useridError.value = ''
+    rfidError.value = ''
     positionQuery.value = ''
     departmentQuery.value = ''
     positionOpen.value = false
@@ -294,6 +321,7 @@ const closeModal = () => {
         pre_name: '',
         first_name: '',
         last_name: '',
+        rfid: '',
         position: '',
         department: '',
         status: '',
@@ -303,6 +331,7 @@ const closeModal = () => {
     fileName.value = ''
     fileError.value = ''
     useridError.value = ''
+    rfidError.value = ''
     positionQuery.value = ''
     departmentQuery.value = ''
     positionOpen.value = false
@@ -394,6 +423,9 @@ const removeImage = () => {
 
 const handleSubmit = async () => {
     useridError.value = ''
+    if (!validateRfid()) {
+        return
+    }
     loading.value = true
     emit('success', {
         ...formData.value,

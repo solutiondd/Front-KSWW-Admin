@@ -17,6 +17,8 @@
                     <div class="font-bold text-lg">{{ teacher.name }}</div>
                     <div class="text-sm text-base-content/70">รหัส: {{ teacherCode }}</div>
                     <div class="text-sm">แผนก: {{ teacher.department }} | ตำแหน่ง: {{ teacher.position }}</div>
+                    <div v-if="teacher?.rfid !== undefined && teacher?.rfid !== null && String(teacher.rfid).trim() !== ''"
+                        class="text-sm text-base-content/70">rfid: {{ teacher.rfid }}</div>
                 </div>
             </div>
             <div class="mb-2 font-semibold flex items-center gap-2">
@@ -65,13 +67,13 @@
                 <div class="flex items-center gap-1"><span
                         class="inline-block w-4 h-4 rounded-full bg-yellow-400"></span> มาสาย</div>
                 <div class="flex items-center gap-1"><span
-                    class="inline-block w-4 h-4 rounded-full bg-emerald-400"></span> ลา</div>
+                        class="inline-block w-4 h-4 rounded-full bg-emerald-400"></span> ลา</div>
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-red-500"></span>
                     ไม่ได้สแกน</div>
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-gray-400"></span>
                     วันหยุด</div>
                 <div class="flex items-center gap-1"><span
-                    class="inline-block w-4 h-4 rounded-full bg-violet-300"></span>
+                        class="inline-block w-4 h-4 rounded-full bg-violet-300"></span>
                     ปิดเทอม/ช่วงพิเศษ</div>
             </div>
             <AttendanceInfo ref="attendanceInfoRef" :user="teacher" :attendance="selectedAttendanceInfo"
@@ -334,7 +336,6 @@ const fetchAttendance = async () => {
         holidays.value = Array.isArray(holidaysRes.data) ? holidaysRes.data : []
 
         const yearsToFetch = [year]
-        // Term 2 can span into Jan-Mar of the next calendar year, so only then we also load previous year.
         if (month <= 2) {
             yearsToFetch.push(year - 1)
         }
