@@ -49,7 +49,7 @@
                         <input v-model="formData.userid" type="text" class="input input-bordered" required
                             :class="{ 'input-error': useridError }" autocomplete="off" />
                         <label v-if="useridError" class="label"><span class="label-text-alt text-error">{{ useridError
-                        }}</span></label>
+                                }}</span></label>
                     </div>
 
                     <div class="form-control">
@@ -104,7 +104,7 @@
                         <input v-model="formData.rfid" type="text" class="input input-bordered" @input="validateRfid"
                             autocomplete="off" />
                         <label v-if="rfidError" class="label"><span class="label-text-alt text-error">{{ rfidError
-                        }}</span></label>
+                                }}</span></label>
                     </div>
 
                     <div class="form-control">
@@ -282,7 +282,7 @@ const openModal = async (student) => {
             const response = await fetch(student.picture)
             const blob = await response.blob()
             if (blob.size > 70 * 1024) {
-                const resizedBlob = await resizeImage(blob, 70, 300, 300)
+                const resizedBlob = await resizeImage(blob, 70, 0)
                 if (resizedBlob.size <= 70 * 1024) {
                     const reader = new FileReader()
                     reader.onload = (e) => {
@@ -321,24 +321,22 @@ const handleGradeChange = () => {
 }
 
 
-async function resizeImage(file, maxSizeKB = 70, maxWidth = 300, maxHeight = 300) {
+async function resizeImage(file, maxSizeKB = 70, minWidth = 450) {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
         const reader = new FileReader();
         reader.onload = (e) => {
             img.onload = () => {
-                let width = img.width;
-                let height = img.height;
-                if (width > maxWidth || height > maxHeight) {
-                    const scale = Math.min(maxWidth / width, maxHeight / height);
-                    width = Math.round(width * scale);
-                    height = Math.round(height * scale);
+                if (minWidth > 0 && img.width < minWidth) {
+                    reject(`ความกว้างรูปต้องไม่น้อยกว่า ${minWidth}px`);
+                    return;
                 }
+
                 const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
+                canvas.width = img.width;
+                canvas.height = img.height;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+                ctx.drawImage(img, 0, 0, img.width, img.height);
                 let quality = 0.85;
                 function tryCompress() {
                     canvas.toBlob((b) => {
@@ -346,6 +344,8 @@ async function resizeImage(file, maxSizeKB = 70, maxWidth = 300, maxHeight = 300
                         if (b.size / 1024 > maxSizeKB && quality > 0.4) {
                             quality -= 0.05;
                             tryCompress();
+                        } else if (b.size / 1024 > maxSizeKB) {
+                            reject(`ขนาดไฟล์หลังบีบอัดเกิน ${maxSizeKB}KB`);
                         } else {
                             resolve(b);
                         }
@@ -371,12 +371,7 @@ const handleFileChange = async (event) => {
             return;
         }
         try {
-            const resizedBlob = await resizeImage(file, 70, 300, 300);
-            if (resizedBlob.size > 70 * 1024) {
-                fileError.value = `ขนาดไฟล์หลังรีไซส์ยังเกิน 70KB (${(resizedBlob.size / 1024).toFixed(2)}KB)`;
-                event.target.value = '';
-                return;
-            }
+            const resizedBlob = await resizeImage(file, 70, 450);
             formData.value.picture = new File([resizedBlob], file.name, { type: 'image/jpeg' });
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -384,7 +379,7 @@ const handleFileChange = async (event) => {
             };
             reader.readAsDataURL(resizedBlob);
         } catch (err) {
-            fileError.value = 'เกิดข้อผิดพลาดในการรีไซส์รูปภาพ';
+            fileError.value = err?.message || String(err) || 'เกิดข้อผิดพลาดในการรีไซส์รูปภาพ';
             event.target.value = '';
         }
     }

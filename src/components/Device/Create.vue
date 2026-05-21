@@ -59,8 +59,26 @@
                             <span class="label-text">Password อุปกรณ์</span>
                             <span class="label-text-alt text-base-content/60">(ไม่บังคับ)</span>
                         </label>
-                        <input v-model="formData.device_password" type="password" placeholder="กรอก Password"
-                            class="input input-bordered w-full" />
+                        <div class="relative">
+                            <input v-model="formData.device_password" :type="showDevicePassword ? 'text' : 'password'"
+                                placeholder="กรอก Password" class="input input-bordered w-full pr-12" />
+                            <button type="button" class="btn btn-ghost btn-sm absolute right-1 top-1/2 -translate-y-1/2"
+                                @click="showDevicePassword = !showDevicePassword"
+                                :aria-label="showDevicePassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'">
+                                <svg v-if="showDevicePassword" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M13.875 18.825A10.05 10.05 0 0112 19c-5.523 0-10-7-10-7a18.347 18.347 0 014.176-4.772M9.88 9.88a3 3 0 104.243 4.243M6.1 6.1L3 3m0 0l18 18" />
+                                </svg>
+                                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.27 2.943 9.542 7-1.273 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -128,6 +146,7 @@ import featureFlags from '../../config/featureFlags.js'
 
 const createModal = ref(null)
 const emit = defineEmits(['success'])
+const showDevicePassword = ref(false)
 
 const formData = ref({
     serial_number: '',
@@ -168,6 +187,7 @@ const closeModal = () => {
 }
 
 const resetForm = () => {
+    showDevicePassword.value = false
     formData.value = {
         serial_number: '',
         location: '',

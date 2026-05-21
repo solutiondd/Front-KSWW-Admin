@@ -28,7 +28,7 @@
                     <input type="file" accept="image/*" multiple @change="onImagesChange"
                         class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
                     <p v-if="imageFiles.length" class="text-xs text-success mt-1">รูปภาพที่เลือก: {{ imageFiles.length
-                    }} ไฟล์</p>
+                        }} ไฟล์</p>
                     <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพให้ตรงกับคอลัมน์ ชื่อรูป เช่น
                         <b>image001.jpg</b>
                         เพื่อให้ระบบแมปข้อมูลอัตโนมัติ
@@ -109,24 +109,22 @@ import { TeacherService } from '../../api/teacher'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
 
-async function resizeImage(file, maxSizeKB = 70, maxWidth = 300, maxHeight = 300) {
+async function resizeImage(file, maxSizeKB = 70, minWidth = 450) {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
         const reader = new FileReader();
         reader.onload = (e) => {
             img.onload = () => {
-                let width = img.width;
-                let height = img.height;
-                if (width > maxWidth || height > maxHeight) {
-                    const scale = Math.min(maxWidth / width, maxHeight / height);
-                    width = Math.round(width * scale);
-                    height = Math.round(height * scale);
+                if (img.width < minWidth) {
+                    reject(`ความกว้างรูปต้องไม่น้อยกว่า ${minWidth}px`);
+                    return;
                 }
+
                 const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
+                canvas.width = img.width;
+                canvas.height = img.height;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+                ctx.drawImage(img, 0, 0, img.width, img.height);
                 let quality = 0.85;
                 function tryCompress() {
                     canvas.toBlob((b) => {
@@ -134,6 +132,8 @@ async function resizeImage(file, maxSizeKB = 70, maxWidth = 300, maxHeight = 300
                         if (b.size / 1024 > maxSizeKB && quality > 0.4) {
                             quality -= 0.05;
                             tryCompress();
+                        } else if (b.size / 1024 > maxSizeKB) {
+                            reject(`ขนาดไฟล์หลังบีบอัดเกิน ${maxSizeKB}KB`);
                         } else {
                             resolve(b);
                         }
@@ -288,18 +288,36 @@ async function handleImport() {
     isImporting.value = true
     try {
         const imageMap = {};
+        const skippedImages = [];
         for (const file of imageFiles.value) {
             const baseName = file.name.split('.')[0];
             if (file.type.match('image/jpeg') || file.type.match('image/jpg')) {
                 try {
-                    const resizedBlob = await resizeImage(file, 70, 300, 300);
-                    if (resizedBlob.size > 70 * 1024) {
-                        continue;
-                    }
+                    const resizedBlob = await resizeImage(file, 70, 450);
                     imageMap[baseName] = new File([resizedBlob], file.name, { type: 'image/jpeg' });
                 } catch (err) {
+                    skippedImages.push({
+                        name: file.name,
+                        reason: err?.message || String(err) || 'ไฟล์รูปไม่ผ่านเงื่อนไข'
+                    });
                 }
+            } else {
+                skippedImages.push({ name: file.name, reason: 'รองรับเฉพาะไฟล์ JPG/JPEG' });
             }
+        }
+
+        if (skippedImages.length > 0) {
+            const details = skippedImages
+                .slice(0, 8)
+                .map((item) => `- ${item.name}: ${item.reason}`)
+                .join('<br>');
+            const moreText = skippedImages.length > 8 ? `<br>... และอีก ${skippedImages.length - 8} ไฟล์` : '';
+
+            await Swal.fire({
+                title: 'มีรูปบางไฟล์ไม่ผ่านเงื่อนไข',
+                html: `ระบบจะข้ามไฟล์ที่ไม่ผ่านเกณฑ์<br><br>${details}${moreText}`,
+                icon: 'warning'
+            });
         }
 
         function cleanLastName(val) {
