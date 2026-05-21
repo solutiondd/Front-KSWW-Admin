@@ -41,11 +41,10 @@
 
                 <div v-if="featureFlags.device.enableUseCase" class="form-control">
                     <label class="label">
-                        <span class="label-text">Use Case</span>
-                        <span class="label-text-alt text-base-content/60">(ไม่บังคับ)</span>
+                        <span class="label-text">Use Case <span class="text-error">*</span></span>
                     </label>
-                    <select v-model="formData.usecase" class="select select-bordered w-full">
-                        <option value="" disabled>เลือกการใช้งาน</option>
+                    <select v-model="formData.usecase" class="select select-bordered w-full" required>
+                        <option value="" disabled>เลือก Use Case</option>
                         <option value="access_control">Access Control</option>
                         <option value="attendance">Attendance</option>
                         <option value="person_confirmation">Person Confirmation</option>
@@ -287,10 +286,15 @@ const handleSubmit = () => {
         return
     }
 
-    const encodedDeviceKey = encodeDeviceKey(device_username, device_password)
-    payload.device_key = encodedDeviceKey
+    const { device_username: origUsername, device_password: origPassword, ...originalPayload } = originalFormData.value
 
-    const hasChanges = Object.keys(payload).some((key) => payload[key] !== originalFormData.value[key])
+    if (device_username || device_password) {
+        payload.device_key = encodeDeviceKey(device_username, device_password)
+    }
+
+    const credentialChanged = device_username !== origUsername || device_password !== origPassword
+    const fieldChanged = Object.keys(originalPayload).some((key) => payload[key] !== originalPayload[key])
+    const hasChanges = fieldChanged || credentialChanged
 
     if (!hasChanges) {
         Swal.fire({
@@ -302,6 +306,8 @@ const handleSubmit = () => {
         })
         return
     }
+
+    if (!payload.usecase) delete payload.usecase
 
     emit('success', {
         id: currentDevice.value._id,
