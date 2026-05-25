@@ -48,14 +48,15 @@ jobs:
           ssh -p "${{ secrets.VM_PORT }}" "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
             "mkdir -p '${{ secrets.VM_TARGET_DIR }}'"
 
-      - name: Clean target directory
+      - name: Upload assets first (exclude index.html)
         shell: bash
         run: |
-          ssh -p "${{ secrets.VM_PORT }}" "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" \
-            "find '${{ secrets.VM_TARGET_DIR }}' -mindepth 1 -maxdepth 1 -exec rm -rf {} +"
+          rsync -az --mkpath --exclude='index.html' \
+            -e "ssh -p ${{ secrets.VM_PORT }}" \
+            dist/ "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_TARGET_DIR }}/"
 
-      - name: Upload build artifacts
+      - name: Upload index.html last
         shell: bash
         run: |
-          scp -P "${{ secrets.VM_PORT }}" -r dist/* \
-            "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_TARGET_DIR }}/"
+          scp -P "${{ secrets.VM_PORT }}" dist/index.html \
+            "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}:${{ secrets.VM_TARGET_DIR }}/index.html"

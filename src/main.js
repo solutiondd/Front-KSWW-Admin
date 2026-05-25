@@ -14,9 +14,30 @@ const app = createApp(App);
 app.use(createPinia());
 app.use(router);
 
+const CHUNK_RELOAD_KEY = "chunk-reload-attempted";
+const isDynamicImportChunkError = (error) => {
+  const message = String(error?.message || error || "");
+  return /Failed to fetch dynamically imported module|Failed to load module script|Importing a module script failed|Loading chunk [\w-]+ failed/i.test(
+    message,
+  );
+};
+
+router.afterEach(() => {
+  sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+});
+
+router.onError((error) => {
+  if (!isDynamicImportChunkError(error)) return;
+
+  const reloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
+  if (reloaded === "1") return;
+
+  sessionStorage.setItem(CHUNK_RELOAD_KEY, "1");
+  window.location.reload();
+});
+
 const authStore = useAuthStore();
 const initialized = authStore.initializeAuth();
-// console.log("Main.js - Auth store initialized:", initialized);
 
 const token = localStorage.getItem("token");
 if (token) {
@@ -34,7 +55,7 @@ axios.interceptors.response.use(
     if (status === 401 && skipAuthRedirect) {
       return Promise.reject(error);
     }
-    
+
     if (status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       if (localStorage.getItem("refresh_token")) {
@@ -61,7 +82,7 @@ axios.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 app.mount("#app");
