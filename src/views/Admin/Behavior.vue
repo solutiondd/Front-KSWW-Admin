@@ -1,5 +1,5 @@
 <template>
-    <div class="max-[570px]:pt-14">
+    <div class="max-[944px]:pt-14">
         <div class="header-row mb-3">
             <div class="header-left">
                 <h2 class="header-title">

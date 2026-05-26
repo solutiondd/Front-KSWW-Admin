@@ -1,5 +1,5 @@
 <template>
-    <div class="max-[570px]:pt-16">
+    <div class="max-[944px]:pt-16">
         <div class="w-full bg-white rounded-lg shadow-sm p-6">
             <div class="mb-6">
                 <div class="flex flex-wrap items-center justify-between gap-3 mb-4">

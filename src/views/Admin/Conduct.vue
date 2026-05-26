@@ -1,5 +1,5 @@
 <template>
-    <div class="max-[570px]:pt-14">
+    <div class="max-[944px]:pt-14">
         <Create :preselected-student="preselectedStudent" @student-selected="handleStudentSelected"
             @conduct-saved="handleConductSaved" />
         <ConductTable v-if="selectedStudentId" :studentId="selectedStudentId" :studentInfo="studentInfo"

@@ -5,12 +5,12 @@
     <aside @mouseenter="handleMouseEnter" @mouseleave="handleMouseLeave" :class="[
         'min-h-screen bg-base-100 shadow-lg transition-all duration-300 ease-in-out relative',
         isExpanded ? 'w-64' : 'w-20',
-        'max-[570px]:fixed max-[570px]:top-0 max-[570px]:left-0 max-[570px]:h-full max-[570px]:z-50',
-        isMobileMenuOpen ? 'max-[570px]:translate-x-0' : 'max-[570px]:-translate-x-full'
+        'max-[944px]:fixed max-[944px]:top-0 max-[944px]:left-0 max-[944px]:h-full max-[944px]:z-50',
+        isMobileMenuOpen ? 'max-[944px]:translate-x-0' : 'max-[944px]:-translate-x-full'
     ]">
 
         <button @click="toggleSidebar"
-            class="absolute -right-3 top-6 bg-orange-300 text-secondary-content rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform z-10 max-[570px]:hidden">
+            class="absolute -right-3 top-6 bg-orange-300 text-secondary-content rounded-full p-1.5 shadow-lg hover:scale-110 transition-transform z-10 max-[944px]:hidden">
             <svg xmlns="http://www.w3.org/2000/svg"
                 :class="['h-4 w-4 transition-transform', isExpanded ? '' : 'rotate-180']" fill="none"
                 viewBox="0 0 24 24" stroke="currentColor">

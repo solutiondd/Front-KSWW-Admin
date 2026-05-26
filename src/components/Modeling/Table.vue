@@ -22,9 +22,10 @@
                         ไม่พบข้อมูล
                     </td>
                 </tr>
-                <tr v-for="(item, index) in data" :key="item._id" class="hover">
+                <tr v-for="(item, index) in data" :key="item._id" class="hover"
+                    :class="{ 'cursor-pointer': selectMode }" @click="handleRowClick(item)">
                     <td v-if="selectMode" class="text-center">
-                        <input type="checkbox" :checked="isSelected(item)"
+                        <input type="checkbox" :checked="isSelected(item)" @click.stop
                             @change="toggleSelect(item, $event.target.checked)" />
                     </td>
                     <td class="text-center">{{ (page - 1) * limit + index + 1 }}</td>
@@ -68,7 +69,7 @@
                             </div>
                         </div>
                     </td>
-                    <td v-if="auth.user?.role !== 'viewer'">
+                    <td v-if="auth.user?.role !== 'viewer'" @click.stop>
                         <div class="flex justify-center gap-2">
                             <DetailModeling :item="item" @updated="$emit('updated')" />
                             <button class="btn btn-xs btn-warning" @click="handleEdit(item)" title="แก้ไข">
@@ -89,9 +90,10 @@
         <div v-if="data.length === 0" class="text-center py-8 text-base-content/60 bg-base-100 rounded-lg shadow-lg">
             ไม่พบข้อมูล
         </div>
-        <div v-for="(item, index) in data" :key="item._id" class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3">
+        <div v-for="(item, index) in data" :key="item._id" class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3"
+            :class="{ 'cursor-pointer': selectMode }" @click="handleRowClick(item)">
             <div class="flex justify-between items-start">
-                <div v-if="selectMode" class="mr-2 flex items-center">
+                <div v-if="selectMode" class="mr-2 flex items-center" @click.stop>
                     <input type="checkbox" :checked="isSelected(item)"
                         @change="toggleSelect(item, $event.target.checked)" />
                 </div>
@@ -156,7 +158,7 @@
                 </div>
             </div>
 
-            <div v-if="auth.user?.role !== 'viewer'" class="mt-3">
+            <div v-if="auth.user?.role !== 'viewer'" class="mt-3" @click.stop>
                 <div class="divider my-2"></div>
                 <div class="flex justify-end gap-2">
                     <DetailModeling :item="item" @updated="$emit('updated')" />
@@ -317,6 +319,11 @@ function toggleSelect(item, checked) {
         newArr = newArr.filter(obj => obj._id !== item._id);
     }
     emit('selectedIds', newArr);
+}
+
+function handleRowClick(item) {
+    if (!props.selectMode) return;
+    toggleSelect(item, !isSelected(item));
 }
 
 watch(() => props.selectMode, (val) => {

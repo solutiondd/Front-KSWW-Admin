@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 max-[570px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-14">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-4">
             <h1 class="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">ปฏิทินการศึกษา</h1>
             <div class="flex gap-2 items-center w-full sm:w-auto">

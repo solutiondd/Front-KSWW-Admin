@@ -48,7 +48,7 @@
                             <div class="p-3">
                                 <p class="text-sm font-semibold text-blue-700 text-center mb-1">{{
                                     formatTime(ts.timeStamp) }}</p>
-                                <p v-if="ts.similarity !== undefined" class="text-xs text-gray-500 text-center">
+                                <p v-if="hasSimilarity(ts.similarity)" class="text-xs text-gray-500 text-center">
                                     ความเหมือน: {{ ts.similarity }}%
                                 </p>
                             </div>
@@ -108,5 +108,12 @@ const formatTime = (timestamp) => {
     const parts = timestamp.split(' ')
     return parts.length > 1 ? parts[1] : timestamp
 }
+
+const hasSimilarity = (value) => {
+    if (value === undefined || value === null) return false
+    if (typeof value === 'string' && value.trim() === '') return false
+    return true
+}
+
 defineExpose({ openModal })
 </script>

@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 max-[570px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-14">
         <div class="flex justify-between items-center text-white">
             <h1 class="text-lg md:text-3xl font-bold">สแกนไม่สำเร็จ</h1>
             <input v-model="filters.date" type="date" @change="fetchData"

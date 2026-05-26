@@ -55,7 +55,7 @@
                                 <p class="text-sm font-semibold text-blue-700 text-center mb-1">{{
                                     formatTime(ts.timestamp) }}</p>
                                 <p class="text-xs text-gray-600 text-center">{{ ts.location }}</p>
-                                <p v-if="ts.similarity !== undefined" class="text-xs text-gray-500 text-center mt-1">
+                                <p v-if="hasSimilarity(ts.similarity)" class="text-xs text-gray-500 text-center mt-1">
                                     ความเหมือน: {{ ts.similarity }}%
                                 </p>
                             </div>
@@ -126,6 +126,13 @@ const formatTime = (timestamp) => {
 const imageErrorHandler = (event, idx) => {
     imageError[idx] = true
 }
+
+const hasSimilarity = (value) => {
+    if (value === undefined || value === null) return false
+    if (typeof value === 'string' && value.trim() === '') return false
+    return true
+}
+
 const getInitials = (name) => {
     if (!name) return ''
     const parts = name.trim().split(' ')

@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 max-[570px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-14">
         <div class="flex flex-col md:flex-row md:justify-between md:items-center text-white gap-2">
             <h1 class="text-lg md:text-3xl font-bold">ตารางขาดเรียน/ขาดงาน</h1>
             <div class="flex flex-row gap-2 items-stretch md:items-center justify-end md:justify-center">

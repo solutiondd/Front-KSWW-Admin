@@ -28,7 +28,7 @@
                     <input type="file" accept="image/*" multiple @change="onImagesChange"
                         class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
                     <p v-if="imageFiles.length" class="text-xs text-success mt-1">รูปภาพที่เลือก: {{ imageFiles.length
-                        }} ไฟล์</p>
+                    }} ไฟล์</p>
                     <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพให้ตรงกับคอลัมน์ ชื่อรูป เช่น
                         <b>image001.jpg</b>
                         เพื่อให้ระบบแมปข้อมูลอัตโนมัติ
@@ -111,36 +111,50 @@ import { StudentService } from '../../api/student'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
 
-async function resizeImage(file, maxSizeKB = 70, minWidth = 450) {
+async function resizeImage(file, maxSizeKB = 70, targetWidth = 450) {
     return new Promise((resolve, reject) => {
         const img = new window.Image();
         const reader = new FileReader();
         reader.onload = (e) => {
             img.onload = () => {
-                if (img.width < minWidth) {
-                    reject(`ความกว้างรูปต้องไม่น้อยกว่า ${minWidth}px`);
-                    return;
-                }
-
                 const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
                 const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, img.width, img.height);
-                let quality = 0.85;
+                const maxBytes = maxSizeKB * 1024;
+                let width = targetWidth > 0 ? targetWidth : img.width;
+                let height = Math.max(1, Math.round((img.height * width) / img.width));
+                let quality = 0.9;
+
                 function tryCompress() {
+                    canvas.width = Math.max(1, Math.round(width));
+                    canvas.height = Math.max(1, Math.round(height));
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
                     canvas.toBlob((b) => {
                         if (!b) return reject('บีบอัดรูปไม่สำเร็จ');
-                        if (b.size / 1024 > maxSizeKB && quality > 0.4) {
-                            quality -= 0.05;
-                            tryCompress();
-                        } else if (b.size / 1024 > maxSizeKB) {
-                            reject(`ขนาดไฟล์หลังบีบอัดเกิน ${maxSizeKB}KB`);
-                        } else {
+
+                        if (b.size <= maxBytes) {
                             resolve(b);
+                            return;
                         }
+
+                        if (quality > 0.45) {
+                            quality -= 0.07;
+                            tryCompress();
+                            return;
+                        }
+
+                        if (width > 120) {
+                            width = Math.max(120, Math.round(width * 0.9));
+                            height = Math.max(1, Math.round((img.height * width) / img.width));
+                            quality = 0.9;
+                            tryCompress();
+                            return;
+                        }
+
+                        reject(`ไม่สามารถบีบอัดรูปให้ไม่เกิน ${maxSizeKB}KB ได้`);
                     }, 'image/jpeg', quality);
                 }
+
                 tryCompress();
             };
             img.onerror = () => reject('ไฟล์รูปไม่ถูกต้อง');
@@ -290,36 +304,37 @@ async function handleImport() {
     isImporting.value = true
     try {
         const imageMap = {};
-        const skippedImages = [];
+        const resizedImageCache = {};
         for (const file of imageFiles.value) {
             const baseName = file.name.split('.')[0];
-            if (file.type.match('image/jpeg') || file.type.match('image/jpg')) {
-                try {
-                    const resizedBlob = await resizeImage(file, 70, 450);
-                    imageMap[baseName] = new File([resizedBlob], file.name, { type: 'image/jpeg' });
-                } catch (err) {
-                    skippedImages.push({
-                        name: file.name,
-                        reason: err?.message || String(err) || 'ไฟล์รูปไม่ผ่านเงื่อนไข'
-                    });
-                }
-            } else {
-                skippedImages.push({ name: file.name, reason: 'รองรับเฉพาะไฟล์ JPG/JPEG' });
+            if (file.type.startsWith('image/')) {
+                imageMap[baseName] = file;
             }
         }
 
-        if (skippedImages.length > 0) {
-            const details = skippedImages
-                .slice(0, 8)
-                .map((item) => `- ${item.name}: ${item.reason}`)
-                .join('<br>');
-            const moreText = skippedImages.length > 8 ? `<br>... และอีก ${skippedImages.length - 8} ไฟล์` : '';
+        async function getResizedImageByKey(key) {
+            const normalizedKey = (key || '')
+                .toString()
+                .trim()
+                .replace(/\.[^/.]+$/, '');
 
-            await Swal.fire({
-                title: 'มีรูปบางไฟล์ไม่ผ่านเงื่อนไข',
-                html: `ระบบจะข้ามไฟล์ที่ไม่ผ่านเกณฑ์<br><br>${details}${moreText}`,
-                icon: 'warning'
-            });
+            if (!normalizedKey) return null;
+
+            if (resizedImageCache[normalizedKey]) {
+                return resizedImageCache[normalizedKey];
+            }
+
+            const sourceFile = imageMap[normalizedKey];
+            if (!sourceFile) return null;
+
+            try {
+                const resizedBlob = await resizeImage(sourceFile, 70, 450);
+                const resizedFile = new File([resizedBlob], sourceFile.name, { type: 'image/jpeg' });
+                resizedImageCache[normalizedKey] = resizedFile;
+                return resizedFile;
+            } catch (err) {
+                return null;
+            }
         }
 
         function cleanLastName(val) {
@@ -365,7 +380,8 @@ async function handleImport() {
                 .trim()
                 .replace(/\.[^/.]+$/, '');
 
-            const resolvedImageFile = imageMap[imageNameKey] || imageMap[cleanedStudent.userid];
+            const resolvedImageFile = await getResizedImageByKey(imageNameKey)
+                || await getResizedImageByKey(cleanedStudent.userid);
 
             let formData = {};
             if (existing && existing.message === 'Success' && existing.data && existing.data._id) {

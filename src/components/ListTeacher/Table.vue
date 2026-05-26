@@ -203,8 +203,8 @@
                                 </template>
                             </td>
                             <td v-if="auth.user?.role !== 'teacher'">
-                                <div class="flex gap-2 justify-center">
-                                    <button class="btn btn-sm btn-info btn-outline" @click="emit('detail', teacher)"
+                                <div class="flex gap-1 lg:gap-2 justify-center">
+                                    <button class="btn btn-xs lg:btn-sm btn-info btn-outline" @click="emit('detail', teacher)"
                                         title="ดูรายละเอียด">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -215,7 +215,7 @@
                                         </svg>
                                     </button>
                                     <button v-if="auth.user?.role !== 'viewer'" @click="$emit('edit', teacher)"
-                                        class="btn btn-sm btn-warning btn-outline" title="แก้ไข">
+                                        class="btn btn-xs lg:btn-sm btn-warning btn-outline" title="แก้ไข">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -223,7 +223,7 @@
                                         </svg>
                                     </button>
                                     <button v-if="auth.user?.role !== 'viewer'" @click="$emit('delete', teacher)"
-                                        class="btn btn-sm btn-error btn-outline" title="ลบ">
+                                        class="btn btn-xs lg:btn-sm btn-error btn-outline" title="ลบ">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

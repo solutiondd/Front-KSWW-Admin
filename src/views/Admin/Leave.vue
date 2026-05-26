@@ -1,5 +1,5 @@
 <template>
-	<div class="max-[570px]:pt-16">
+	<div class="max-[944px]:pt-16">
 		<div class="mb-4 flex items-center justify-between gap-3">
 			<h2 class="text-2xl font-bold text-white">จัดการรายการลา</h2>
 			<button type="button" class="btn btn-primary btn-sm" @click="openCreateModal">

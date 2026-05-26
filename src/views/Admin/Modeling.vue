@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 max-[570px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-14">
         <div class="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
             <h1 class="text-lg md:text-3xl font-bold text-white">จัดการเชื่อมต่ออุปกรณ์</h1>
             <div v-if="auth.user?.role !== 'viewer'" class="w-full sm:w-auto flex justify-end">
@@ -81,6 +81,7 @@
             </div>
 
             <div class="flex justify-end gap-2 mt-3">
+                <ModelingExport :filters="filters" />
                 <button @click="resetFilters" class="btn btn-ghost btn-xs">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
@@ -148,6 +149,7 @@ import { ClassRoomService } from '../../api/class-room.js';
 import { DepartmentService } from '../../api/department.js';
 import ModelingTable from "../../components/Modeling/Table.vue";
 import CreateModeling from "../../components/Modeling/Create.vue";
+import ModelingExport from "../../components/Modeling/Export.vue";
 import ModelingService from "../../api/modeling.js";
 import Swal from "sweetalert2";
 import { useAuthStore } from "../../stores/auth.js";
