@@ -17,7 +17,8 @@
                 <div>
                     <div class="font-bold text-[#1e293b] text-[1.15rem] mb-[2px]">{{ studentInfo.name }}</div>
                     <div class="text-[#334155] mb-[2px]">รหัส: {{ studentInfo.userid }}</div>
-                    <div class="text-[#334155]">ระดับชั้น: {{ studentInfo.grade }} ห้อง {{ studentInfo.classroom }}
+                    <div class="text-[#334155]">ระดับชั้น: {{ mapGradeDisplay(studentInfo.grade) }} ห้อง {{
+                        studentInfo.classroom }}
                     </div>
                 </div>
                 <div class="flex flex-col items-end min-w-[80px] ml-[24px]">
@@ -110,6 +111,7 @@ import Detail from './Detail.vue'
 import ExportDocs from './ExportDocs.vue'
 import Swal from 'sweetalert2'
 import { useAuthStore } from '../../stores/auth'
+import { mapGradeDisplay } from '../../utils/gradeSystem'
 
 const auth = useAuthStore()
 const conductList = ref([])

@@ -47,8 +47,8 @@
                         <td class="align-center">{{ group[0].name }}</td>
                         <td class="text-center align-center">{{ group[0].position }}</td>
                         <td class="text-center align-center">
-                            <span v-if="group[0].position === 'นักเรียน'">{{ group[0].grade }}/{{ group[0].classroom
-                            }}</span>
+                            <span v-if="group[0].position === 'นักเรียน'">{{ formatGradeClassroomDisplay(group[0].grade,
+                                group[0].classroom) }}</span>
                             <span v-else>{{ group[0].department || '-' }}</span>
                         </td>
                         <td class="text-center">{{ formatDate(group[0].missed_date) }}</td>
@@ -103,8 +103,8 @@
             <div class="text-sm">
                 <span class="text-base-content/60" v-if="group[0].position === 'นักเรียน'">ชั้นเรียน:</span>
                 <span class="text-base-content/60" v-else>แผนก:</span>
-                <p class="font-medium inline ml-2" v-if="group[0].position === 'นักเรียน'">{{ group[0].grade }}/{{
-                    group[0].classroom }}</p>
+                <p class="font-medium inline ml-2" v-if="group[0].position === 'นักเรียน'">{{
+                    formatGradeClassroomDisplay(group[0].grade, group[0].classroom) }}</p>
                 <p class="font-medium inline ml-2" v-else>{{ group[0].department || '-' }}</p>
             </div>
 
@@ -153,9 +153,7 @@
 
     <div v-if="pagination.total_items > 0" class="text-center text-sm text-base-content/60 mt-4"
         :class="summaryTextColor">
-        แสดง {{ ((pagination.page - 1) * pagination.limit) + 1 }} - {{
-            Math.min(pagination.page * pagination.limit, pagination.total_items)
-        }} จาก {{ pagination.total_items }} รายการ
+        ทั้งหมด {{ pagination.total_items }} รายการ (หน้า {{ pagination.page }} / {{ pagination.total_pages }})
     </div>
 
     <dialog ref="imageModal" class="modal">
@@ -182,6 +180,7 @@ import { saveAs } from 'file-saver'
 import reportApi from '../../api/report.js'
 import ExcelJS from 'exceljs'
 import MissedTableDetail from './MissedTableDetail.vue'
+import { formatGradeClassroomDisplay, mapGradeDisplay } from '../../utils/gradeSystem'
 
 const loadingExportDoc = ref(false)
 const loadingExport = ref(false)
@@ -379,7 +378,7 @@ async function exportMissedToExcel() {
                         'ชื่อ-สกุล': item.name,
                         'ตำแหน่ง': item.position,
                         'ชั้นเรียน/แผนก': item.position === 'นักเรียน'
-                            ? `${item.grade}/${item.classroom}`
+                            ? formatGradeClassroomDisplay(item.grade, item.classroom)
                             : (item.department || '-'),
                         'วันที่ขาด': formatDate(date),
                     });
@@ -390,7 +389,7 @@ async function exportMissedToExcel() {
                     'ชื่อ-สกุล': item.name,
                     'ตำแหน่ง': item.position,
                     'ชั้นเรียน/แผนก': item.position === 'นักเรียน'
-                        ? `${item.grade}/${item.classroom}`
+                        ? formatGradeClassroomDisplay(item.grade, item.classroom)
                         : (item.department || '-'),
                     'วันที่ขาด': '-',
                 });
@@ -400,7 +399,7 @@ async function exportMissedToExcel() {
         let filteredRows = rows;
         if (props.role === 'student') {
             if (props.grade !== undefined && props.grade !== null && props.grade !== '') {
-                filteredRows = filteredRows.filter(item => String(item['ชั้นเรียน/แผนก']).startsWith(String(props.grade + '/')));
+                filteredRows = filteredRows.filter(item => String(item['ชั้นเรียน/แผนก']).startsWith(String(mapGradeDisplay(props.grade) + '/')));
             }
             if (props.classroom !== undefined && props.classroom !== null && props.classroom !== '') {
                 filteredRows = filteredRows.filter(item => String(item['ชั้นเรียน/แผนก']).endsWith('/' + String(props.classroom)));

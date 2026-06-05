@@ -121,7 +121,7 @@
                         </label>
                         <template v-if="auth.user?.role === 'teacher'">
                             <div class="p-2 rounded bg-gray-100 border text-base">
-                                ชั้น: {{ formData.grade }} ห้อง: {{ formData.classroom }}
+                                ชั้น: {{ mapGradeDisplay(formData.grade) }} ห้อง: {{ formData.classroom }}
                             </div>
                         </template>
                         <template v-else>
@@ -132,7 +132,8 @@
                                 <select v-model="formData.grade" @change="handleGradeChange"
                                     class="select select-bordered w-full" required>
                                     <option value="">เลือกชั้นปี</option>
-                                    <option v-for="grade in availableGrades" :key="grade" :value="grade">{{ grade }}
+                                    <option v-for="grade in availableGrades" :key="grade" :value="grade">{{
+                                        mapGradeDisplay(grade) }}
                                     </option>
                                 </select>
                             </div>
@@ -166,6 +167,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem'
 
 const auth = useAuthStore()
 
@@ -209,12 +211,7 @@ const props = defineProps({
 const emit = defineEmits(['success'])
 
 const availableGrades = computed(() => {
-    const grades = [...new Set(props.classrooms.map(c => c.grade))]
-    return grades.sort((a, b) => {
-        const gradeA = parseInt(a.replace('ม.', ''))
-        const gradeB = parseInt(b.replace('ม.', ''))
-        return gradeA - gradeB
-    })
+    return toVisibleSortedGrades(props.classrooms.map(c => c.grade))
 })
 
 watch(() => auth.user?.role, (role) => {

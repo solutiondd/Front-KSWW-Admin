@@ -27,7 +27,7 @@
                     </div>
                     <div v-if="type === 'student'" class="bg-blue-50 p-3 rounded-lg border border-blue-200">
                         <p class="text-xs text-blue-600 mb-1">ระดับชั้น</p>
-                        <p class="font-semibold text-blue-900">{{ user.grade }}</p>
+                        <p class="font-semibold text-blue-900">{{ mapGradeDisplay(user.grade) }}</p>
                     </div>
                     <div v-if="type === 'student'" class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                         <p class="text-xs text-yellow-600 mb-1">ห้อง</p>
@@ -88,6 +88,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import { mapGradeDisplay } from '../utils/gradeSystem'
 const props = defineProps({
     user: { type: Object, required: true },
     attendance: { type: Object, default: null },

@@ -2,7 +2,8 @@
     <dialog ref="modalRef" class="modal">
         <form method="dialog" class="modal-box">
             <h3 class="font-bold text-lg text-error">ยืนยันการลบทั้งหมด</h3>
-            <p class="py-4">คุณต้องการลบข้อมูลนักเรียนทั้งหมดใน <span class="font-semibold">{{ grade }}</span>
+            <p class="py-4">คุณต้องการลบข้อมูลนักเรียนทั้งหมดใน <span class="font-semibold">{{ mapGradeDisplay(grade)
+                    }}</span>
                 ใช่หรือไม่?</p>
             <div class="modal-action">
                 <button type="button" class="btn btn-ghost" @click="close">ยกเลิก</button>
@@ -16,7 +17,8 @@
     <dialog ref="secondDialogRef" class="modal">
         <form method="dialog" class="modal-box">
             <h3 class="font-bold text-lg text-error">ยืนยันอีกครั้ง</h3>
-            <p class="py-4">คุณแน่ใจหรือไม่ว่าต้องการลบ <span class="font-semibold">{{ grade }}</span> ทั้งหมด?
+            <p class="py-4">คุณแน่ใจหรือไม่ว่าต้องการลบ <span class="font-semibold">{{ mapGradeDisplay(grade) }}</span>
+                ทั้งหมด?
                 <br>การกระทำนี้ไม่สามารถย้อนกลับได้
             </p>
             <div class="modal-action">
@@ -33,6 +35,7 @@
 <script setup>
 import { ref } from 'vue'
 import { StudentService } from '../../api/student'
+import { mapGradeDisplay } from '../../utils/gradeSystem'
 const modalRef = ref(null)
 const secondDialogRef = ref(null)
 const grade = ref('')

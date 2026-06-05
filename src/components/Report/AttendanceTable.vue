@@ -55,7 +55,7 @@
                                 <td class="text-center">{{ item.position }}</td>
                                 <td class="text-center">
                                     <span v-if="item.department">{{ item.department }}</span>
-                                    <span v-else>{{ item.grade }}/{{ item.classroom }}</span>
+                                    <span v-else>{{ formatGradeClassroomDisplay(item.grade, item.classroom) }}</span>
                                 </td>
                                 <td class="text-center">{{ formatDate(item.attendances[0].date) }}</td>
                                 <td class="text-center">
@@ -151,7 +151,7 @@
                             <td class="text-center">{{ item.position }}</td>
                             <td class="text-center">
                                 <span v-if="item.department">{{ item.department }}</span>
-                                <span v-else>{{ item.grade }}/{{ item.classroom }}</span>
+                                <span v-else>{{ formatGradeClassroomDisplay(item.grade, item.classroom) }}</span>
                             </td>
                             <td class="text-center">-</td>
                             <td class="text-center"><span class="badge badge-error badge-sm">ไม่มี</span></td>
@@ -207,7 +207,9 @@
                 <div class="grid grid-cols-2 gap-2 text-sm">
                     <div>
                         <span class="text-base-content/60">{{ item.department ? 'แผนก:' : 'ชั้นเรียน:' }}</span>
-                        <p class="font-medium">{{ item.department || `${item.grade}/${item.classroom}` }}</p>
+                        <p class="font-medium">{{ item.department || formatGradeClassroomDisplay(item.grade,
+                            item.classroom) }}
+                        </p>
                     </div>
                 </div>
 
@@ -317,9 +319,7 @@
     </div>
 
     <div v-if="pagination.total_items > 0" class="text-center text-sm text-base-content/60 mt-4 text-white">
-        แสดง {{ ((pagination.page - 1) * pagination.limit) + 1 }} - {{
-            Math.min(pagination.page * pagination.limit, pagination.total_items)
-        }} จาก {{ pagination.total_items }} รายการ
+        ทั้งหมด {{ pagination.total_items }} รายการ (หน้า {{ pagination.page }} / {{ pagination.total_pages }})
     </div>
 
     <dialog ref="imageModal" class="modal">
@@ -343,6 +343,7 @@ import { saveAs } from 'file-saver'
 import reportApi from '../../api/report.js'
 import featureFlags from '../../config/featureFlags.js'
 import { ref, computed } from 'vue'
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 
 const loadingExport = ref(false)
 
@@ -356,9 +357,7 @@ function formatClassOrDepartment(item) {
     if (item?.department !== null && item?.department !== undefined && item?.department !== '') {
         return normalizeCellValue(item.department)
     }
-    const grade = normalizeCellValue(item?.grade)
-    const classroom = normalizeCellValue(item?.classroom)
-    return `${grade}/${classroom}`
+    return formatGradeClassroomDisplay(item?.grade, item?.classroom)
 }
 
 async function exportAllToExcel() {

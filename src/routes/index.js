@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
 
 const Login = () => import("../views/Login.vue");
-const AdminLayout = () => import("../layouts/AdminLayout.vue");
-const Home = () => import("../views/Admin/Home.vue");
 import UpdatePassword from "../components/UpdatePassword.vue";
+const AdminLayout = () => import("../layouts/AdminLayout.vue");
+
+const Home = () => import("../views/Admin/Home.vue");
 const Teacher = () => import("../views/Admin/Teacher.vue");
 const Student = () => import("../views/Admin/Student.vue");
 const Account = () => import("../views/Admin/Account.vue");
@@ -12,19 +13,23 @@ const Position = () => import("../views/Admin/Position.vue");
 const ClassRoom = () => import("../views/Admin/ClassRoom.vue");
 const Device = () => import("../views/Admin/Device.vue");
 const Modeling = () => import("../views/Admin/Modeling.vue");
+const Holidays = () => import("../views/Admin/Holidays.vue");
+const Behavior = () => import("../views/Admin/Behavior.vue");
+const Conduct = () => import("../views/Admin/Conduct.vue");
+const AcademicCalendar = () => import("../views/Admin/Academiccalendar.vue");
+const CheckName = () => import("../views/Admin/CheckName.vue");
+const Leave = () => import("../views/Admin/Leave.vue");
+const UniformInspection = () => import("../views/Admin/UniformInspection.vue");
+
+const LeaveReport = () => import("../views/Admin/report/LeaveReq.vue");
+const AtRisk = () => import("../views/Admin/report/AtRisk.vue");
 const TableReport = () => import("../views/Admin/report/Attendance.vue");
 const LateReport = () => import("../views/Admin/report/Late.vue");
 const MissedReport = () => import("../views/Admin/report/Missed.vue");
 const StrangerReport = () => import("../views/Admin/report/Stranger.vue");
 const StatsView = () => import("../views/Admin/report/StatsView.vue");
-const Holidays = () => import("../views/Admin/Holidays.vue");
-const Behavior = () => import("../views/Admin/Behavior.vue");
-const Conduct = () => import("../views/Admin/Conduct.vue");
-const AtRisk = () => import("../views/Admin/report/AtRisk.vue");
-const AcademicCalendar = () => import("../views/Admin/Academiccalendar.vue");
-const CheckName = () => import("../views/Admin/CheckName.vue");
-const Leave = () => import("../views/Admin/Leave.vue");
-const LeaveReport = () => import("../views/Admin/report/LeaveReq.vue");
+const Activity = () => import("../views/Admin/report/Activity.vue");
+const UniformInspectionReport = () => import("../views/Admin/report/UniformInspectionReport.vue");
 
 const routes = [
   { path: "/", name: "login", component: Login },
@@ -148,6 +153,21 @@ const routes = [
         path: "report/leave",
         name: "LeaveReport",
         component: LeaveReport,
+      },
+      {
+        path: "uniform-inspection",
+        name: "UniformInspection",
+        component: UniformInspection,
+      },
+      {
+        path: "report/activity",
+        name: "Activity",
+        component: Activity,
+      },
+      {
+        path: "report/uniform-inspection",
+        name: "UniformInspectionReport",
+        component: UniformInspectionReport,
       },
     ],
   },

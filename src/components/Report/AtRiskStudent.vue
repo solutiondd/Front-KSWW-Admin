@@ -96,7 +96,7 @@
                 <div class="grid grid-cols-2 gap-2 text-sm">
                     <div>
                         <span class="text-base-content/60">ระดับชั้น</span>
-                        <p class="font-medium">{{ item.grade || '-' }}</p>
+                        <p class="font-medium">{{ mapGradeDisplay(item.grade) || '-' }}</p>
                     </div>
                     <div>
                         <span class="text-base-content/60">ห้อง</span>
@@ -111,6 +111,7 @@
 <script setup>
 import { onMounted, ref } from "vue";
 import reportApi from "../../api/report.js";
+import { formatGradeClassroomDisplay, mapGradeDisplay } from '../../utils/gradeSystem';
 
 const imgProfileBaseUrl = import.meta.env.VITE_IMG_PROFILE_URL;
 
@@ -145,10 +146,7 @@ const getInitials = (name) => {
 
 const formatClassroom = (item) => {
     if (!item) return "-";
-    if (item.grade && item.classroom) return `${item.grade}/${item.classroom}`;
-    if (item.grade) return item.grade;
-    if (item.classroom) return item.classroom;
-    return "-";
+    return formatGradeClassroomDisplay(item.grade, item.classroom);
 };
 
 const scoreBadgeClass = (score) => {

@@ -17,6 +17,7 @@
 import { ref } from 'vue'
 import { ClassRoomService } from '../../api/class-room'
 import { StudentService } from '../../api/student'
+import { mapGradeDisplay } from '../../utils/gradeSystem'
 
 const emit = defineEmits(['success'])
 const loading = ref(false)
@@ -25,10 +26,12 @@ const studentService = new StudentService()
 
 async function handlePromote() {
     const { default: Swal } = await import('sweetalert2')
+    const terminalGradeA = mapGradeDisplay('ม.3')
+    const terminalGradeB = mapGradeDisplay('ม.6')
     // Confirm 1
     const confirm1 = await Swal.fire({
-                icon: 'warning',
-        title: 'การยืนยันครั้งนี้จะลบชั้น ม.3 และ ม.6 ออกทุกห้อง',
+        icon: 'warning',
+        title: `การยืนยันครั้งนี้จะลบชั้น ${terminalGradeA} และ ${terminalGradeB} ออกทุกห้อง`,
         text: 'ยืนยันใช่ไหม?',
         showCancelButton: true,
         confirmButtonText: 'ยืนยัน',

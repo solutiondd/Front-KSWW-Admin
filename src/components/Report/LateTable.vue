@@ -53,8 +53,8 @@
                                 <td>{{ item.name }}</td>
                                 <td class="text-center">{{ item.position }}</td>
                                 <td class="text-center">
-                                    <span v-if="item.position === 'นักเรียน'">{{ item.grade }}/{{ item.classroom
-                                    }}</span>
+                                    <span v-if="item.position === 'นักเรียน'">{{ formatGradeClassroomDisplay(item.grade,
+                                        item.classroom) }}</span>
                                     <span v-else>-</span>
                                 </td>
                                 <td class="text-center">{{ formatDate(item.late_dates[0].date) }}</td>
@@ -169,7 +169,8 @@
                             <td>{{ item.name }}</td>
                             <td class="text-center">{{ item.position }}</td>
                             <td class="text-center">
-                                <span v-if="item.position === 'นักเรียน'">{{ item.grade }}/{{ item.classroom }}</span>
+                                <span v-if="item.position === 'นักเรียน'">{{ formatGradeClassroomDisplay(item.grade,
+                                    item.classroom) }}</span>
                                 <span v-else>-</span>
                             </td>
                             <td class="text-center">-</td>
@@ -206,7 +207,9 @@
                     <div>
                         <span class="text-base-content/60" v-if="item.position === 'นักเรียน'">ชั้นเรียน:</span>
                         <span class="text-base-content/60" v-else>แผนก:</span>
-                        <p class="font-medium" v-if="item.position === 'นักเรียน'">{{ item.grade }}/{{ item.classroom }}
+                        <p class="font-medium" v-if="item.position === 'นักเรียน'">{{
+                            formatGradeClassroomDisplay(item.grade,
+                                item.classroom) }}
                         </p>
                         <p class="font-medium" v-else>{{ item.department || '-' }}</p>
                     </div>
@@ -288,9 +291,7 @@
 
         <div v-if="pagination.total_items > 0" class="text-center text-sm text-base-content/60 mt-4"
             :class="summaryTextColor">
-            แสดง {{ ((pagination.page - 1) * pagination.limit) + 1 }} - {{
-                Math.min(pagination.page * pagination.limit, pagination.total_items)
-            }} จาก {{ pagination.total_items }} รายการ
+            ทั้งหมด {{ pagination.total_items }} รายการ (หน้า {{ pagination.page }} / {{ pagination.total_pages }})
         </div>
 
         <dialog ref="imageModal" class="modal">
@@ -315,6 +316,7 @@ import { ref, computed } from 'vue'
 import ExcelJS from 'exceljs'
 import { saveAs } from 'file-saver'
 import reportApi from '../../api/report.js'
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 
 const loadingExport = ref(false)
 async function exportLateToExcel() {
@@ -353,7 +355,7 @@ async function exportLateToExcel() {
                         'ชื่อ-สกุล': item.name,
                         'ตำแหน่ง': item.position,
                         'ชั้นเรียน/แผนก': item.position === 'นักเรียน'
-                            ? `${item.grade}/${item.classroom}`
+                            ? formatGradeClassroomDisplay(item.grade, item.classroom)
                             : (item.department || '-'),
                         'วันที่': formatDate(late.date),
                         'เวลาเข้า': getFirstTime(late),
@@ -366,7 +368,7 @@ async function exportLateToExcel() {
                     'ชื่อ-สกุล': item.name,
                     'ตำแหน่ง': item.position,
                     'ชั้นเรียน/แผนก': item.position === 'นักเรียน'
-                        ? `${item.grade}/${item.classroom}`
+                        ? formatGradeClassroomDisplay(item.grade, item.classroom)
                         : (item.department || '-'),
                     'วันที่': '-',
                     'เวลาเข้า': '-',

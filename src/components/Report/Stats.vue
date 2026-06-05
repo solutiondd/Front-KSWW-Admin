@@ -7,7 +7,8 @@
                 </h1>
                 <div v-if="residentRole === 'teacher'" class="mb-2 flex items-center gap-2">
                     <span class="label-text text-sm font-medium text-secondary">ชั้นปี / ห้อง</span>
-                    <span class="font-bold text-secondary">{{ teacherGrade }}/{{ teacherClassroom }}</span>
+                    <span class="font-bold text-secondary">{{ mapGradeDisplay(teacherGrade) }}/{{ teacherClassroom
+                        }}</span>
                 </div>
             </div>
             <div
@@ -184,6 +185,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import reportApi from '../../api/report.js'
+import { mapGradeDisplay } from '../../utils/gradeSystem'
 
 const residentRole = localStorage.getItem('residentRole') || ''
 const teacherGrade = localStorage.getItem('grade') || ''

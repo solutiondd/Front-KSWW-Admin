@@ -54,7 +54,8 @@
                     </label>
                     <select v-model="filters.grade" @change="fetchData" class="select select-bordered select-sm w-full">
                         <option value="">ทั้งหมด</option>
-                        <option v-for="grade in grades" :key="grade" :value="grade">{{ grade }}</option>
+                        <option v-for="grade in grades" :key="grade" :value="grade">{{ mapGradeDisplay(grade) }}
+                        </option>
                     </select>
                 </div>
                 <div v-if="filters.role === 'student' && auth.user?.role !== 'teacher'" class="form-control">
@@ -153,6 +154,7 @@ import ModelingExport from "../../components/Modeling/Export.vue";
 import ModelingService from "../../api/modeling.js";
 import Swal from "sweetalert2";
 import { useAuthStore } from "../../stores/auth.js";
+import { mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem'
 
 const auth = useAuthStore();
 
@@ -288,7 +290,7 @@ onMounted(async () => {
         (classroomRes?.data || []).forEach(room => {
             if (room.grade) gradeSet.add(room.grade);
         });
-        grades.value = Array.from(gradeSet);
+        grades.value = toVisibleSortedGrades(Array.from(gradeSet));
         departments.value = departmentRes?.data || [];
     } catch (e) {
         classrooms.value = [];

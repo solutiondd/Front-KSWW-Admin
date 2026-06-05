@@ -28,7 +28,7 @@
                             </div>
                         </div>
                         <div class="flex flex-wrap gap-2 text-sm mt-2">
-                            <span class="badge badge-primary badge-sm">{{ student.grade }}</span>
+                            <span class="badge badge-primary badge-sm">{{ mapGradeDisplay(student.grade) }}</span>
                             <span class="badge badge-outline badge-sm">ห้อง {{ student.room }}</span>
                             <span class="badge badge-sm font-semibold" :class="getScoreBadgeClass(student.score)">
                                 คะแนน {{ getScoreDisplay(student.score) }}
@@ -56,33 +56,51 @@
                                     </template>
                                 </div>
                                 <span v-if="hasGuardian(student)" class="inline-flex items-center shrink-0">
-                                    <span class="group relative inline-flex items-center">
-                                        <span
-                                            class="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-default">
+                                    <span class="guardian-popover-root relative inline-flex items-center">
+                                        <button type="button"
+                                            class="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-pointer"
+                                            :aria-expanded="isGuardianOpen(student)"
+                                            @click.stop="toggleGuardian(student)">
                                             LINE
-                                        </span>
-                                        <div
-                                            class="pointer-events-none invisible absolute right-0 bottom-full z-50 mb-2 w-64 max-w-[calc(100vw-2rem)] translate-x-0 rounded-xl border border-base-300 bg-base-100 p-3 opacity-0 shadow-xl transition-all duration-150 group-hover:visible group-hover:opacity-100 md:left-auto md:right-0 md:translate-x-0">
-                                            <div class="flex items-center gap-3">
-                                                <div class="avatar">
-                                                    <div class="w-12 h-12 rounded-full bg-base-200 overflow-hidden">
-                                                        <img v-if="getGuardianInfo(student).picture"
-                                                            :src="getGuardianInfo(student).picture"
-                                                            :alt="getGuardianInfo(student).name || 'guardian'"
-                                                            class="w-full h-full object-cover" />
-                                                        <div v-else
-                                                            class="w-full h-full flex items-center justify-center text-xs text-base-content/60">
-                                                            ไม่มีรูป
+                                        </button>
+                                        <div v-if="isGuardianOpen(student)" @click.stop
+                                            class="absolute right-full top-1/2 z-50 mr-2 w-64 max-w-[calc(100vw-2rem)] -translate-y-1/2 rounded-xl border border-base-300 bg-base-100 p-3 text-left shadow-xl md:left-auto md:right-0 md:translate-x-0">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="flex items-center gap-3 min-w-0">
+                                                    <div class="avatar">
+                                                        <div class="w-12 h-12 rounded-full bg-base-200 overflow-hidden">
+                                                            <img v-if="getGuardianInfo(student).picture"
+                                                                :src="getGuardianInfo(student).picture"
+                                                                :alt="getGuardianInfo(student).name || 'guardian'"
+                                                                class="w-full h-full object-cover" />
+                                                            <div v-else
+                                                                class="w-full h-full flex items-center justify-center text-xs text-base-content/60">
+                                                                ไม่มีรูป
+                                                            </div>
                                                         </div>
                                                     </div>
+                                                    <div class="min-w-0">
+                                                        <div class="text-xs text-base-content/60">ผู้ปกครอง LINE</div>
+                                                        <div class="font-medium truncate">{{
+                                                            getGuardianInfo(student).name
+                                                            || '-' }}</div>
+                                                        <div class="text-xs text-base-content/70">{{
+                                                            getGuardianInfo(student).phone || '-' }}</div>
+                                                    </div>
                                                 </div>
-                                                <div class="min-w-0">
-                                                    <div class="text-xs text-base-content/60">ผู้ปกครอง LINE</div>
-                                                    <div class="font-medium truncate">{{ getGuardianInfo(student).name
-                                                        || '-' }}</div>
-                                                    <div class="text-xs text-base-content/70">{{
-                                                        getGuardianInfo(student).phone || '-' }}</div>
-                                                </div>
+                                                <button type="button" class="btn btn-ghost btn-xs btn-square text-error"
+                                                    :title="getGuardianLineUserId(student) ? 'ลบ' : 'ไม่พบ lineuser_id'"
+                                                    :disabled="guardianDeletingKey === getGuardianKey(student)"
+                                                    @click.stop="deleteGuardianLine(student)">
+                                                    <span v-if="guardianDeletingKey === getGuardianKey(student)"
+                                                        class="loading loading-spinner loading-xs"></span>
+                                                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </div>
                                     </span>
@@ -121,7 +139,7 @@
                 </div>
             </div>
             <div class="hidden md:block overflow-x-auto">
-                <table class="table table-zebra table-xs sm:table-sm md:table-md">
+                <table class="table table-zebra table-xs sm:table-sm md:table-md student-table">
                     <thead>
                         <tr>
                             <th class="bg-primary text-primary-content hidden lg:table-cell">#</th>
@@ -135,7 +153,7 @@
                                 จัดการ</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="p-0">
                         <tr v-if="loading">
                             <td colspan="8" class="text-center py-8">
                                 <span class="loading loading-spinner loading-lg text-primary"></span>
@@ -172,7 +190,7 @@
                             </td>
                             <td class="hidden sm:table-cell">{{ student.code }}</td>
                             <td>
-                                <span class="badge badge-primary badge-sm">{{ student.grade }}</span>
+                                <span class="badge badge-primary badge-sm">{{ mapGradeDisplay(student.grade) }}</span>
                             </td>
                             <td class="hidden md:table-cell">{{ student.room }}</td>
                             <td class="text-center hidden xl:table-cell">
@@ -181,7 +199,8 @@
                                 </span>
                             </td>
                             <td class="text-center">
-                                <div class="flex items-center justify-center gap-2">
+                                <div
+                                    class="flex items-center justify-center gap-2 max-[1070px]:flex-col max-[1070px]:gap-1">
                                     <template v-if="auth.user?.role !== 'viewer' && auth.user?.role !== 'discipline'">
                                         <button class="btn btn-ghost btn-xs"
                                             :title="student.has_password ? 'มีรหัสผ่าน' : 'ยังไม่มีรหัสผ่าน'"
@@ -195,35 +214,54 @@
                                             class="inline-block w-3 h-3 rounded-full"></span>
                                     </template>
 
-                                    <span v-if="hasGuardian(student)" class="group relative inline-flex items-center">
-                                        <span
-                                            class="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-default">
+                                    <span v-if="hasGuardian(student)"
+                                        class="guardian-popover-root relative inline-flex items-center">
+                                        <button type="button"
+                                            class="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-pointer"
+                                            :aria-expanded="isGuardianOpen(student)"
+                                            @click.stop="toggleGuardian(student)">
                                             LINE
-                                        </span>
-                                        <div
-                                            class="pointer-events-none invisible absolute right-full top-1/2 z-50 mr-2 w-64 max-w-[calc(100vw-2rem)] -translate-y-1/2 rounded-xl border border-base-300 bg-base-100 p-3 text-left opacity-0 shadow-xl transition-all duration-150 group-hover:visible group-hover:opacity-100">
-                                            <div class="flex items-center gap-3">
-                                                <div class="avatar">
-                                                    <div class="w-12 h-12 rounded-full bg-base-200 overflow-hidden">
-                                                        <img v-if="getGuardianInfo(student).picture"
-                                                            :src="getGuardianInfo(student).picture"
-                                                            :alt="getGuardianInfo(student).name || 'guardian'"
-                                                            class="w-full h-full object-cover" />
-                                                        <div v-else
-                                                            class="w-full h-full flex items-center justify-center text-xs text-base-content/60">
-                                                            ไม่มีรูป
+                                        </button>
+                                        <div v-if="isGuardianOpen(student)" @click.stop
+                                            class="absolute right-full top-1/2 z-50 mr-2 w-64 max-w-[calc(100vw-2rem)] -translate-y-1/2 rounded-xl border border-base-300 bg-base-100 p-3 text-left shadow-xl md:left-auto md:right-0 md:translate-x-0">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="flex items-center gap-3 min-w-0">
+                                                    <div class="avatar">
+                                                        <div class="w-12 h-12 rounded-full bg-base-200 overflow-hidden">
+                                                            <img v-if="getGuardianInfo(student).picture"
+                                                                :src="getGuardianInfo(student).picture"
+                                                                :alt="getGuardianInfo(student).name || 'guardian'"
+                                                                class="w-full h-full object-cover" />
+                                                            <div v-else
+                                                                class="w-full h-full flex items-center justify-center text-xs text-base-content/60">
+                                                                ไม่มีรูป
+                                                            </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div class="min-w-0">
-                                                    <div class="text-xs text-base-content/60">ผู้ปกครอง LINE</div>
-                                                    <div class="font-medium truncate">{{ getGuardianInfo(student).name
-                                                        || '-' }}
+                                                    <div class="min-w-0">
+                                                        <div class="text-xs text-base-content/60">ผู้ปกครอง LINE</div>
+                                                        <div class="font-medium truncate">{{
+                                                            getGuardianInfo(student).name
+                                                            || '-'
+                                                        }}</div>
+                                                        <div class="text-xs text-base-content/70">{{
+                                                            getGuardianInfo(student).phone ||
+                                                            '-' }}</div>
                                                     </div>
-                                                    <div class="text-xs text-base-content/70">{{
-                                                        getGuardianInfo(student).phone ||
-                                                        '-' }}</div>
                                                 </div>
+                                                <button type="button" class="btn btn-ghost btn-xs btn-square text-error"
+                                                    :title="getGuardianLineUserId(student) ? 'ลบ' : 'ไม่พบ lineuser_id'"
+                                                    :disabled="guardianDeletingKey === getGuardianKey(student)"
+                                                    @click.stop="deleteGuardianLine(student)">
+                                                    <span v-if="guardianDeletingKey === getGuardianKey(student)"
+                                                        class="loading loading-spinner loading-xs"></span>
+                                                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
+                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                                            stroke-width="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                    </svg>
+                                                </button>
                                             </div>
                                         </div>
                                     </span>
@@ -231,8 +269,8 @@
                             </td>
                             <td>
                                 <div class="flex gap-1 lg:gap-2 justify-center">
-                                    <button class="btn btn-xs lg:btn-sm btn-info btn-outline" @click="emitDetail(student)"
-                                        title="ดูรายละเอียด">
+                                    <button class="btn btn-xs xl:btn-sm btn-info btn-outline"
+                                        @click="emitDetail(student)" title="ดูรายละเอียด">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -242,7 +280,7 @@
                                         </svg>
                                     </button>
                                     <button v-if="auth.user?.role !== 'viewer' && auth.user?.role !== 'discipline'"
-                                        class="btn btn-xs lg:btn-sm btn-warning btn-outline" @click="emitEdit(student)"
+                                        class="btn btn-xs xl:btn-sm btn-warning btn-outline" @click="emitEdit(student)"
                                         title="แก้ไข">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -251,7 +289,7 @@
                                         </svg>
                                     </button>
                                     <button v-if="auth.user?.role !== 'viewer' && auth.user?.role !== 'discipline'"
-                                        class="btn btn-xs lg:btn-sm btn-error btn-outline" @click="emitDelete(student)"
+                                        class="btn btn-xs xl:btn-sm btn-error btn-outline" @click="emitDelete(student)"
                                         title="ลบ">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -270,8 +308,14 @@
 </template>
 
 <script setup>
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useAuthStore } from '../../stores/auth'
+import { StudentService } from '../../api/student'
+import { mapGradeDisplay } from '../../utils/gradeSystem'
 const auth = useAuthStore()
+const openGuardianKey = ref(null)
+const guardianDeletingKey = ref(null)
+const studentService = new StudentService()
 const props = defineProps({
     students: {
         type: Array,
@@ -291,7 +335,7 @@ const props = defineProps({
     }
 })
 
-const emit = defineEmits(['edit', 'delete', 'reset', 'detail'])
+const emit = defineEmits(['edit', 'delete', 'reset', 'detail', 'refresh'])
 
 const getInitials = (name) => {
     if (!name) return '?'
@@ -346,12 +390,89 @@ const getGuardianInfo = (student) => {
     }
 }
 
+const getGuardianLineUserId = (student) => {
+    const guardianSource = student?.guadians ?? student?.guardians
+    const guardian = Array.isArray(guardianSource) ? guardianSource[0] : guardianSource
+    return guardian?._id || guardian?.lineuser_id || guardian?.line_user_id || guardian?.lineUserId || student?.lineuser_id || student?.line_user_id || ''
+}
+
 const hasGuardian = (student) => {
     const guardianSource = student?.guadians ?? student?.guardians
     if (!guardianSource) return false
     if (Array.isArray(guardianSource)) return guardianSource.length > 0
     return Boolean(guardianSource.name || guardianSource.picture || student?.guardian_phone)
 }
+
+const getGuardianKey = (student) => {
+    return student?.id ?? student?.userid ?? student?.code ?? student?.name ?? null
+}
+
+const isGuardianOpen = (student) => {
+    return openGuardianKey.value === getGuardianKey(student)
+}
+
+const toggleGuardian = (student) => {
+    const key = getGuardianKey(student)
+    openGuardianKey.value = openGuardianKey.value === key ? null : key
+}
+
+const deleteGuardianLine = async (student) => {
+    const lineuser_id = getGuardianLineUserId(student)
+    if (!lineuser_id) return
+
+    const { default: Swal } = await import('sweetalert2')
+    const confirmResult = await Swal.fire({
+        icon: 'warning',
+        title: 'ยืนยันการลบใช่ไหม',
+        text: 'ต้องการลบไลน์ผู้ปกครองรายการนี้หรือไม่',
+        showCancelButton: true,
+        confirmButtonText: 'ลบ',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        didOpen: () => {
+            document.getElementById('app')?.removeAttribute('aria-hidden')
+        }
+    })
+
+    if (!confirmResult.isConfirmed) return
+
+    const key = getGuardianKey(student)
+    guardianDeletingKey.value = key
+    try {
+        const result = await studentService.deleteLineStudent({
+            lineuser_id,
+            userid: student?.userid || student?.code || ''
+        })
+        if (result?.message === 'Success' || result?.success === true) {
+            if (isGuardianOpen(student)) closeGuardian()
+            emit('refresh')
+        }
+    } catch (error) {
+        console.error('Delete line guardian error:', error)
+    } finally {
+        guardianDeletingKey.value = null
+    }
+}
+
+const closeGuardian = () => {
+    openGuardianKey.value = null
+}
+
+const handleDocumentClick = (event) => {
+    if (!openGuardianKey.value) return
+    const target = event?.target
+    if (target?.closest?.('.guardian-popover-root')) return
+    closeGuardian()
+}
+
+onMounted(() => {
+    document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleDocumentClick)
+})
 
 const emitEdit = (student) => {
     emit('edit', student)
@@ -370,4 +491,15 @@ const emitDetail = (student) => {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+@media (max-width: 1032px) {
+
+    .student-table :deep(th),
+    .student-table :deep(td) {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+    }
+}
+</style>

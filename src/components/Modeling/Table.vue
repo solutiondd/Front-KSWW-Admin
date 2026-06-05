@@ -48,7 +48,7 @@
                     <td class="text-center">{{ item.position }}</td>
                     <td class="text-center">
                         <span v-if="item.role === 'student'">
-                            {{ item.grade }} / {{ item.classroom }}
+                            {{ formatGradeClassroomDisplay(item.grade, item.classroom) }}
                         </span>
                         <span v-else>
                             {{ item.department || '-' }}
@@ -130,7 +130,7 @@
                     </span>
                     <p class="font-medium">
                         <span v-if="item.role === 'student'">
-                            {{ item.grade }} / {{ item.classroom }}
+                            {{ formatGradeClassroomDisplay(item.grade, item.classroom) }}
                         </span>
                         <span v-else>
                             {{ item.department || '-' }}
@@ -205,6 +205,7 @@ import { ClassRoomService } from '../../api/class-room.js';
 import { DepartmentService } from '../../api/department.js';
 import { PositionService } from '../../api/position.js';
 import { useAuthStore } from '../../stores/auth'
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 
 const auth = useAuthStore()
 

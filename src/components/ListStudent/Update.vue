@@ -49,7 +49,7 @@
                         <input v-model="formData.userid" type="text" class="input input-bordered" required
                             :class="{ 'input-error': useridError }" autocomplete="off" />
                         <label v-if="useridError" class="label"><span class="label-text-alt text-error">{{ useridError
-                        }}</span></label>
+                                }}</span></label>
                     </div>
 
                     <div class="form-control">
@@ -84,7 +84,8 @@
                         <select v-model="formData.grade" @change="handleGradeChange" class="select select-bordered"
                             required>
                             <option value="">เลือกชั้นปี</option>
-                            <option v-for="grade in availableGrades" :key="grade" :value="grade">{{ grade }}</option>
+                            <option v-for="grade in availableGrades" :key="grade" :value="grade">{{
+                                mapGradeDisplay(grade) }}</option>
                         </select>
                     </div>
 
@@ -104,7 +105,7 @@
                         <input v-model="formData.rfid" type="text" class="input input-bordered" @input="validateRfid"
                             autocomplete="off" />
                         <label v-if="rfidError" class="label"><span class="label-text-alt text-error">{{ rfidError
-                        }}</span></label>
+                                }}</span></label>
                     </div>
 
                     <div class="form-control">
@@ -136,6 +137,7 @@
 import { ref, computed } from 'vue'
 import { StudentService } from '../../api/student'
 import { useAuthStore } from '../../stores/auth'
+import { mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem'
 
 const auth = useAuthStore()
 const imgProfileUrl = import.meta.env.VITE_IMG_PROFILE_URL;
@@ -179,8 +181,7 @@ const props = defineProps({
 const emit = defineEmits(['success'])
 
 const availableGrades = computed(() => {
-    const grades = [...new Set(props.classrooms.map(c => c.grade))]
-    return grades.sort((a, b) => parseInt(a.replace('ม.', '')) - parseInt(b.replace('ม.', '')))
+    return toVisibleSortedGrades(props.classrooms.map(c => c.grade))
 })
 
 const availableClassrooms = computed(() => {

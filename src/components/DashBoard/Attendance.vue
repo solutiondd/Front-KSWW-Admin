@@ -8,7 +8,7 @@
                 <select v-if="props.role !== 'teacher' && !props.hideDropdown" v-model="selectedGrade"
                     @change="handleGradeChange" class="select select-sm select-bordered w-full sm:w-32">
                     <option value="">เลือกชั้น</option>
-                    <option v-for="grade in grades" :key="grade" :value="grade">{{ grade }}</option>
+                    <option v-for="grade in grades" :key="grade" :value="grade">{{ mapGradeDisplay(grade) }}</option>
                 </select>
                 <select v-if="props.role !== 'teacher' && !props.hideDropdown" v-model="selectedClassroom"
                     @change="handleClassroomChange" class="select select-sm select-bordered w-full sm:w-32">
@@ -45,7 +45,8 @@
                         <td>{{ item.userid }}</td>
                         <td>{{ item.name }}</td>
                         <td>{{ item.position }}</td>
-                        <td v-if="props.role !== 'teacher'">{{ item.department || `${item.grade}/${item.classroom}` }}
+                        <td v-if="props.role !== 'teacher'">{{ item.department ||
+                            formatGradeClassroomDisplay(item.grade, item.classroom) }}
                         </td>
                         <td>{{ getEntryTime(item) }}</td>
                         <td>
@@ -89,7 +90,8 @@
                 <div class="grid grid-cols-2 gap-2 text-sm">
                     <div>
                         <span class="text-base-content/60">{{ item.department ? 'แผนก:' : 'ชั้นเรียน:' }}</span>
-                        <p class="font-medium">{{ item.department || `${item.grade}/${item.classroom}` }}</p>
+                        <p class="font-medium">{{ item.department || formatGradeClassroomDisplay(item.grade,
+                            item.classroom) }}</p>
                     </div>
                 </div>
                 <div class="divider my-2"></div>
@@ -129,6 +131,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import DetailAttendance from './DetailAttendance.vue'
 import reportApi from '../../api/report.js'
 import { ClassRoomService } from '../../api/class-room.js'
+import { formatGradeClassroomDisplay, mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem'
 const imgBaseUrl = import.meta.env.VITE_IMG_PROFILE_URL
 const data = ref([])
 const loading = ref(false)
@@ -156,7 +159,7 @@ async function fetchClassRooms() {
         const res = await service.getClassRooms()
         if (res.message === 'Success' && res.data) {
             allClassrooms.value = res.data
-            grades.value = [...new Set(res.data.map(c => c.grade))]
+            grades.value = toVisibleSortedGrades(res.data.map(c => c.grade))
         }
     } catch (e) {
         grades.value = []

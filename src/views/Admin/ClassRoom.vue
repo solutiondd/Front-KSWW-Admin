@@ -11,7 +11,8 @@
                     </svg>
                     เพิ่มห้องเรียน
                 </button>
-                <Promote v-if="auth.user?.role !== 'teacher' && auth.user?.role !== 'viewer'"
+                <Promote
+                    v-if="featureFlags.gradeSystem.enablePromoteLevel && auth.user?.role !== 'teacher' && auth.user?.role !== 'viewer'"
                     @success="fetchClassRooms" />
             </div>
         </div>
@@ -53,6 +54,8 @@ import Promote from '../../components/ClassRoom/Promote.vue'
 import { ClassRoomService } from '../../api/class-room'
 import { TeacherService } from '../../api/teacher'
 import { useAuthStore } from '../../stores/auth'
+import featureFlags from '../../config/featureFlags'
+import { getConfiguredGrades, getGradeUiLabel, shouldIncludeGrade, toVisibleSortedGrades } from '../../utils/gradeSystem'
 const auth = useAuthStore()
 
 const classRoomService = new ClassRoomService()
@@ -64,20 +67,23 @@ const loading = ref(false)
 const createModalRef = ref(null)
 const updateModalRef = ref(null)
 const deleteModalRef = ref(null)
-const selectedGrade = ref('ม.1')
+const selectedGrade = ref('')
 
-const availableGrades = [
-    { value: 'ม.1', label: 'มัธยมศึกษาปีที่ 1' },
-    { value: 'ม.2', label: 'มัธยมศึกษาปีที่ 2' },
-    { value: 'ม.3', label: 'มัธยมศึกษาปีที่ 3' },
-    { value: 'ม.4', label: 'มัธยมศึกษาปีที่ 4' },
-    { value: 'ม.5', label: 'มัธยมศึกษาปีที่ 5' },
-    { value: 'ม.6', label: 'มัธยมศึกษาปีที่ 6' }
-]
+const availableGrades = computed(() => {
+    const grades = toVisibleSortedGrades([
+        ...getConfiguredGrades(),
+        ...classrooms.value.map(c => c.grade)
+    ])
+    return grades.map(grade => ({
+        value: grade,
+        label: getGradeUiLabel(grade)
+    }))
+})
 
 const filteredClassrooms = computed(() => {
-    if (!selectedGrade.value) return classrooms.value
-    return classrooms.value.filter(classroom => classroom.grade === selectedGrade.value)
+    const visibleClassrooms = classrooms.value.filter(classroom => shouldIncludeGrade(classroom.grade))
+    if (!selectedGrade.value) return visibleClassrooms
+    return visibleClassrooms.filter(classroom => classroom.grade === selectedGrade.value)
 })
 
 const fetchClassRooms = async () => {
@@ -86,6 +92,10 @@ const fetchClassRooms = async () => {
         const response = await classRoomService.getClassRooms()
         if (response.message === 'Success' && response.data) {
             classrooms.value = response.data
+            const gradeValues = availableGrades.value.map(item => item.value)
+            if (!gradeValues.includes(selectedGrade.value)) {
+                selectedGrade.value = gradeValues[0] || ''
+            }
         }
     } catch (error) {
         console.error('Fetch classrooms error:', error)

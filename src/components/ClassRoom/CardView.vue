@@ -21,7 +21,7 @@
                             'w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-bold text-white shadow-md',
                             getGradeColor(grade.grade)
                         ]">
-                            {{ grade.grade.replace('ม.', '') }}
+                            {{ getGradeBadge(grade.grade) }}
                         </div>
                         <span class="text-base md:text-xl">{{ getGradeLabel(grade.grade) }}</span>
                     </h3>
@@ -108,6 +108,7 @@
 import { computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useRouter } from 'vue-router'
+import { compareGrades, getGradeSortOrder, getGradeUiBadge, getGradeUiLabel } from '../../utils/gradeSystem'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -142,11 +143,7 @@ const groupedClassrooms = computed(() => {
     })
 
     return Object.values(groups)
-        .sort((a, b) => {
-            const gradeA = parseInt(a.grade.replace('ม.', ''))
-            const gradeB = parseInt(b.grade.replace('ม.', ''))
-            return gradeA - gradeB
-        })
+        .sort((a, b) => compareGrades(a.grade, b.grade))
         .map(group => ({
             ...group,
             classrooms: group.classrooms.sort((a, b) => a.classroom - b.classroom)
@@ -154,23 +151,21 @@ const groupedClassrooms = computed(() => {
 })
 
 const getGradeLabel = (grade) => {
-    return grade === 'ม.1' ? 'มัธยมศึกษาปีที่ 1'
-        : grade === 'ม.2' ? 'มัธยมศึกษาปีที่ 2'
-            : grade === 'ม.3' ? 'มัธยมศึกษาปีที่ 3'
-                : grade === 'ม.4' ? 'มัธยมศึกษาปีที่ 4'
-                    : grade === 'ม.5' ? 'มัธยมศึกษาปีที่ 5'
-                        : grade === 'ม.6' ? 'มัธยมศึกษาปีที่ 6'
-                            : grade
+    return getGradeUiLabel(grade)
 }
 
 const getGradeColor = (grade) => {
-    return grade === 'ม.1' ? 'bg-blue-300'
-        : grade === 'ม.2' ? 'bg-blue-400'
-            : grade === 'ม.3' ? 'bg-blue-500'
-                : grade === 'ม.4' ? 'bg-blue-600'
-                    : grade === 'ม.5' ? 'bg-blue-700'
-                        : grade === 'ม.6' ? 'bg-blue-800'
-                            : 'bg-primary'
+    const order = getGradeSortOrder(grade)
+    if (order <= 3) return 'bg-teal-500'
+    if (order <= 6) return 'bg-green-500'
+    if (order <= 9) return 'bg-cyan-500'
+    if (order <= 12) return 'bg-blue-600'
+    if (order <= 15) return 'bg-indigo-600'
+    return 'bg-primary'
+}
+
+const getGradeBadge = (grade) => {
+    return getGradeUiBadge(grade)
 }
 </script>
 

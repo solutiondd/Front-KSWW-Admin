@@ -26,7 +26,8 @@
                     <div class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                         <p class="text-xs text-yellow-600 mb-1">{{ selectedItem.department ? 'แผนก' : 'ชั้นเรียน' }}</p>
                         <p class="font-semibold text-yellow-900">
-                            {{ selectedItem.department || `${selectedItem.grade}/${selectedItem.classroom}` }}
+                            {{ selectedItem.department || formatGradeClassroomDisplay(selectedItem.grade,
+                            selectedItem.classroom) }}
                         </p>
                     </div>
                 </div>
@@ -91,6 +92,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 
 // const imgBaseUrl = import.meta.env.VITE_APP_IMG_URL
 const imgBaseUrl = import.meta.env.VITE_IMG_PROFILE_URL

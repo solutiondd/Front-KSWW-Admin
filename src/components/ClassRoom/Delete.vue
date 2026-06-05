@@ -3,7 +3,8 @@
         <div class="modal-box">
             <h3 class="font-bold text-lg mb-4 text-error">ยืนยันการลบห้องเรียน</h3>
             <div class="mb-4">
-                <p>คุณต้องการลบ <strong>{{ classroom?.grade }} ห้อง {{ classroom?.classroom }}</strong> ใช่หรือไม่?</p>
+                <p>คุณต้องการลบ <strong>{{ mapGradeDisplay(classroom?.grade) }} ห้อง {{ classroom?.classroom }}</strong>
+                    ใช่หรือไม่?</p>
             </div>
             <div class="flex justify-end gap-2">
                 <button class="btn btn-sm btn-ghost" @click="closeModal">ยกเลิก</button>
@@ -22,6 +23,7 @@
 <script setup>
 import { ref } from 'vue'
 import { ClassRoomService } from '../../api/class-room'
+import { mapGradeDisplay } from '../../utils/gradeSystem'
 const modalRef = ref(null)
 const loading = ref(false)
 const classroom = ref(null)

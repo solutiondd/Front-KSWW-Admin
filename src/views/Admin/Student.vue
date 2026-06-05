@@ -21,21 +21,21 @@
                     </svg>
                     เพิ่มนักเรียน
                 </button>
-                <button v-if="auth.user?.role !== 'teacher' && (selectedGrade === 'ม.3' || selectedGrade === 'ม.6')"
+                <button v-if="auth.user?.role !== 'teacher' && isTerminalSecondaryGrade(selectedGrade)"
                     class="btn btn-error btn-sm" @click="openDeleteAllModal">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                         stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    ลบทั้งหมด {{ selectedGrade }}
+                    ลบทั้งหมด {{ mapGradeDisplay(selectedGrade) }}
                 </button>
             </div>
         </div>
 
         <div class="card bg-base-100 shadow-md">
             <div class="card-body p-4">
-                <div class="flex flex-col sm:flex-row gap-3">
+                <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3">
                     <div v-if="auth.user?.role !== 'teacher'" class="form-control w-full sm:w-auto"
                         :class="searchUserid ? 'opacity-50 pointer-events-none' : ''">
                         <label class="label py-1">
@@ -44,7 +44,9 @@
                         <select v-model="selectedGrade" @change="handleGradeChange"
                             class="select select-bordered select-sm w-full sm:w-32"
                             :disabled="isQueryFilter || !!searchUserid">
-                            <option v-for="grade in availableGrades" :key="grade" :value="grade">{{ grade }}</option>
+                            <option v-if="lineConnectFilter !== ''" value="">ทั้งหมด</option>
+                            <option v-for="grade in availableGrades" :key="grade" :value="grade">{{
+                                mapGradeDisplay(grade) }}</option>
                         </select>
                     </div>
 
@@ -56,6 +58,7 @@
                         <select v-model="selectedClassroom" @change="fetchStudents"
                             class="select select-bordered select-sm w-full sm:w-24"
                             :disabled="isQueryFilter || !!searchUserid">
+                            <option v-if="lineConnectFilter !== ''" value="">ทั้งหมด</option>
                             <option v-for="room in availableClassrooms" :key="room" :value="room">{{ room }}</option>
                         </select>
                     </div>
@@ -66,9 +69,21 @@
                         </label>
                         <div class="relative flex gap-2">
                             <input v-model="searchUserid" @input="debouncedSearchByUserid" type="text"
-                                placeholder="ค้นหาชื่อหรือรหัสนักเรียน..."
-                                class="input input-bordered input-sm w-full" />
+                                placeholder="ค้นหาชื่อหรือรหัสนักเรียน..." class="input input-bordered input-sm w-full"
+                                :disabled="lineConnectFilter !== ''" />
                         </div>
+                    </div>
+                    <div v-if="featureFlags.student.enableLineStatusFilter"
+                        class="form-control max-[1000px]:basis-full">
+                        <label class="label py-1">
+                            <span class="label-text text-sm">สถานะ LINE</span>
+                        </label>
+                        <select v-model="lineConnectFilter" @change="handleLineConnectFilterChange"
+                            class="select select-bordered select-sm w-full sm:w-36">
+                            <option value="">ทั้งหมด</option>
+                            <option value="connected">เชื่อม LINE</option>
+                            <option value="notconnected">ยังไม่เชื่อม LINE</option>
+                        </select>
                     </div>
                     <div class="flex justify-between sm:justify-start w-full sm:w-auto gap-2">
                         <div class="flex items-end">
@@ -101,7 +116,7 @@
 
         <StudentTable :students="filteredStudents" :loading="loading" :currentPage="currentPage"
             :itemsPerPage="itemsPerPage.value" @edit="openUpdateModal" @delete="openDeleteModal"
-            @reset="openRePasswordModal" @detail="openDetailModal" />
+            @reset="openRePasswordModal" @detail="openDetailModal" @refresh="fetchStudents" />
         <CreateModal ref="createModalRef" :classrooms="classrooms" @success="handleCreateSuccess" />
         <ImportExcalModal ref="importModalRef" @success="handleImportSuccess" />
         <UpdateModal ref="updateModalRef" :classrooms="classrooms" @success="handleUpdateSuccess" />
@@ -111,19 +126,25 @@
         <DetailModal v-if="detailModalVisible && detailStudent" :visible="detailModalVisible" :student="detailStudent"
             @close="closeDetailModal" />
 
-        <div v-if="totalPages > 1" class="flex justify-center">
-            <div class="join">
-                <button class="join-item btn btn-sm" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">
-                    ‹
-                </button>
-                <button v-for="page in displayedPages" :key="page" class="join-item btn btn-sm"
-                    :class="{ 'btn-active': page === currentPage }" @click="goToPage(page)">
-                    {{ page }}
-                </button>
-                <button class="join-item btn btn-sm" @click="goToPage(currentPage + 1)"
-                    :disabled="currentPage === totalPages">
-                    ›
-                </button>
+        <div v-if="totalPages > 1" class="flex flex-col items-center gap-2">
+            <div class="flex justify-center">
+                <div class="join">
+                    <button class="join-item btn btn-sm" @click="goToPage(currentPage - 1)"
+                        :disabled="currentPage === 1">
+                        ‹
+                    </button>
+                    <button v-for="page in displayedPages" :key="page" class="join-item btn btn-sm"
+                        :class="{ 'btn-active': page === currentPage }" @click="goToPage(page)">
+                        {{ page }}
+                    </button>
+                    <button class="join-item btn btn-sm" @click="goToPage(currentPage + 1)"
+                        :disabled="currentPage === totalPages">
+                        ›
+                    </button>
+                </div>
+            </div>
+            <div class="text-sm text-base-content/60 text-center text-white">
+                ทั้งหมด {{ totalItems }} รายการ (หน้า {{ currentPage }} / {{ totalPages }})
             </div>
         </div>
     </div>
@@ -143,6 +164,8 @@ import DetailModal from '../../components/ListStudent/Detail.vue'
 import { StudentService } from '../../api/student'
 import { ClassRoomService } from '../../api/class-room'
 import { useAuthStore } from '../../stores/auth'
+import featureFlags from '../../config/featureFlags'
+import { isTerminalSecondaryGrade, mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem'
 
 const isQueryFilter = ref(false)
 const auth = useAuthStore()
@@ -165,8 +188,8 @@ const handleImportSuccess = async (importedStudents) => {
 const updateModalRef = ref(null)
 const rePasswordModalRef = ref(null)
 const loading = ref(false)
-const selectedGrade = ref('ม.1')
-const selectedClassroom = ref('1')
+const selectedGrade = ref('')
+const selectedClassroom = ref('')
 const searchQuery = ref('')
 const currentPage = ref(1)
 const itemsPerPage = ref(5)
@@ -174,6 +197,9 @@ const imageBaseUrl = import.meta.env.VITE_IMG_PROFILE_URL
 const lastFetchedGrade = ref('')
 const lastFetchedClassroom = ref('')
 const searchUserid = ref("");
+const lineConnectFilter = ref('')
+const lastLineConnectFilter = ref('')
+const sendEmptyGradeClassroomOnce = ref(false)
 const detailModalVisible = ref(false)
 const detailStudent = ref(null)
 
@@ -208,6 +234,14 @@ const mapStudentRow = (student) => ({
     guardian_phone: student.guardian_phone || student.parent_phone || '',
     guadians: normalizeGuardian(student.guadians),
     guardians: normalizeGuardian(student.guardians),
+    lineuser_id:
+        student.lineuser_id ||
+        student.line_user_id ||
+        student.guadians?.lineuser_id ||
+        student.guadians?.line_user_id ||
+        student.guardians?.lineuser_id ||
+        student.guardians?.line_user_id ||
+        '',
     score: Number.isFinite(Number(student.score)) ? Number(student.score) : 100,
     phone: student.phone || '-',
     picture: normalizeImagePath(student.picture),
@@ -224,12 +258,7 @@ const closeDetailModal = () => {
 }
 
 const availableGrades = computed(() => {
-    const grades = [...new Set(classrooms.value.map(c => c.grade))]
-    return grades.sort((a, b) => {
-        const gradeA = parseInt(a.replace('ม.', ''))
-        const gradeB = parseInt(b.replace('ม.', ''))
-        return gradeA - gradeB
-    })
+    return toVisibleSortedGrades(classrooms.value.map(c => c.grade))
 })
 
 const availableClassrooms = computed(() => {
@@ -249,6 +278,8 @@ const filteredBySearch = computed(() => {
         student.code.toLowerCase().includes(query)
     )
 })
+
+const totalItems = computed(() => filteredBySearch.value.length)
 
 const totalPages = computed(() => Math.ceil(filteredBySearch.value.length / itemsPerPage.value))
 
@@ -316,8 +347,27 @@ const fetchStudents = async () => {
     loading.value = true
     currentPage.value = 1
     searchQuery.value = ''
+    const useEmptyGradeClassroom = sendEmptyGradeClassroomOnce.value
     try {
-        const response = await studentService.getStudents(selectedGrade.value, selectedClassroom.value)
+        const effectiveLineConnectFilter = featureFlags.student.enableLineStatusFilter ? lineConnectFilter.value : ''
+        const keyword = effectiveLineConnectFilter ? '' : searchUserid.value.trim()
+        let userid = ''
+        let name = ''
+        if (keyword) {
+            if (/^\d+$/.test(keyword)) {
+                userid = keyword
+            } else {
+                name = keyword
+            }
+        }
+
+        const response = await studentService.getStudents(
+            useEmptyGradeClassroom ? '' : selectedGrade.value,
+            useEmptyGradeClassroom ? '' : selectedClassroom.value,
+            userid,
+            name,
+            effectiveLineConnectFilter
+        )
         if (response.message === 'Success' && response.data) {
             students.value = response.data.map(mapStudentRow)
             if (response.data.length > 0) {
@@ -342,6 +392,9 @@ const fetchStudents = async () => {
         })
         students.value = []
     } finally {
+        if (sendEmptyGradeClassroomOnce.value) {
+            sendEmptyGradeClassroomOnce.value = false
+        }
         loading.value = false
     }
 }
@@ -355,6 +408,7 @@ const resetFilters = () => {
     }
     searchQuery.value = ''
     searchUserid.value = ''
+    lineConnectFilter.value = ''
     fetchStudents()
 }
 
@@ -414,32 +468,6 @@ const handleCreateSuccess = async (formData) => {
     }
 }
 
-
-const searchByUserid = async () => {
-    if (!searchUserid.value) return;
-    loading.value = true;
-    try {
-        let userid = '';
-        let name = '';
-        if (/^\d+$/.test(searchUserid.value)) {
-            userid = searchUserid.value;
-        } else {
-            name = searchUserid.value;
-        }
-        const response = await studentService.getStudents(selectedGrade.value, selectedClassroom.value, userid, name);
-        if (response.message === 'Success' && response.data) {
-            students.value = response.data.map(mapStudentRow);
-            currentPage.value = 1;
-        } else {
-            students.value = [];
-        }
-    } catch (error) {
-        students.value = [];
-    } finally {
-        loading.value = false;
-    }
-}
-
 function debounce(fn, delay) {
     let timeoutId;
     return function (...args) {
@@ -449,12 +477,28 @@ function debounce(fn, delay) {
 }
 
 const debouncedSearchByUserid = debounce(() => {
-    if (searchUserid.value) {
-        searchByUserid();
-    } else {
-        fetchStudents();
-    }
+    fetchStudents()
 }, 400);
+
+const handleLineConnectFilterChange = () => {
+    const isFirstLineFilterSelect = !lastLineConnectFilter.value && !!lineConnectFilter.value
+    sendEmptyGradeClassroomOnce.value = isFirstLineFilterSelect
+
+    if (isFirstLineFilterSelect) {
+        selectedGrade.value = ''
+        selectedClassroom.value = ''
+    }
+
+    if (lineConnectFilter.value) {
+        searchUserid.value = ''
+    } else if (!selectedGrade.value && availableGrades.value.length > 0) {
+        selectedGrade.value = availableGrades.value[0]
+        selectedClassroom.value = availableClassrooms.value[0] || ''
+    }
+
+    lastLineConnectFilter.value = lineConnectFilter.value
+    fetchStudents()
+}
 
 const openUpdateModal = (student) => {
     updateModalRef.value.openModal(student)

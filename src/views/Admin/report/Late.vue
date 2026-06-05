@@ -37,7 +37,8 @@
                     <select v-model="filters.grade" @change="handleGradeChange"
                         class="select select-sm select-bordered w-full" :disabled="filters.role === 'teacher'">
                         <option value="">ทุกชั้นปี</option>
-                        <option v-for="grade in allGrades" :key="grade" :value="grade">{{ grade }}</option>
+                        <option v-for="grade in allGrades" :key="grade" :value="grade">{{ mapGradeDisplay(grade) }}
+                        </option>
                     </select>
                 </div>
                 <div v-if="residentRole !== 'teacher'" class="form-control">
@@ -55,7 +56,7 @@
                     <div
                         class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
                         <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>
-                        <span>{{ teacherGrade }}/{{ teacherClassroom }}</span>
+                        <span>{{ mapGradeDisplay(teacherGrade) }}/{{ teacherClassroom }}</span>
                     </div>
                 </div>
             </div>
@@ -86,6 +87,7 @@ import { ref, onMounted, computed } from 'vue'
 import LateTable from '../../../components/Report/LateTable.vue'
 import reportApi from '../../../api/report.js'
 import { ClassRoomService } from '../../../api/class-room.js'
+import { mapGradeDisplay, toVisibleSortedGrades } from '../../../utils/gradeSystem'
 
 const residentRole = localStorage.getItem('residentRole') || ''
 const teacherGrade = localStorage.getItem('grade') || ''
@@ -170,7 +172,7 @@ const handleRoleChange = () => {
         filters.value.grade = ''
         filters.value.classroom = ''
     } else {
-        filters.value.grade = allGrades.value.length > 0 ? allGrades.value[0] : 'ม.1'
+        filters.value.grade = allGrades.value.length > 0 ? allGrades.value[0] : ''
         filters.value.classroom = allRooms.value.length > 0 ? allRooms.value[0] : '1'
     }
     fetchData()
@@ -256,8 +258,11 @@ onMounted(async () => {
             if (item.grade) gradesSet.add(item.grade)
             if (item.classroom) roomsSet.add(item.classroom)
         })
-        allGrades.value = Array.from(gradesSet)
+        allGrades.value = toVisibleSortedGrades(Array.from(gradesSet))
         allRooms.value = Array.from(roomsSet)
+        if (filters.value.role === 'student' && !filters.value.grade) {
+            filters.value.grade = allGrades.value[0] || ''
+        }
     } catch (err) {
         console.error('Error fetching class rooms:', err)
     }

@@ -22,7 +22,7 @@
                 </div>
             </div>
             <div class="mb-2 font-semibold flex items-center gap-2">
-                <span>ปฏิทินการมาโรงเรียน</span>
+                <span>ปฏิทินการโรงเรียน</span>
                 <select v-model="selectedMonth" class="select select-bordered select-xs">
                     <option v-for="(m, idx) in monthsTH" :key="idx" :value="idx">{{ m }}</option>
                 </select>
@@ -61,13 +61,15 @@
                     </tbody>
                 </table>
             </div>
-            <div class="flex gap-4 mt-4 text-xs">
+            <div class="mt-4 text-xs grid grid-cols-7 gap-3 max-[650px]:grid-cols-3">
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-blue-500"></span>
                     มาโรงเรียน</div>
                 <div class="flex items-center gap-1"><span
                         class="inline-block w-4 h-4 rounded-full bg-yellow-400"></span> มาสาย</div>
                 <div class="flex items-center gap-1"><span
                         class="inline-block w-4 h-4 rounded-full bg-emerald-400"></span> ลา</div>
+                <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-pink-300"></span>
+                    กิจกรรม</div>
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-red-500"></span>
                     ไม่ได้สแกน</div>
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-gray-400"></span>
@@ -88,6 +90,7 @@ import reportApi from '../../api/report'
 import holidaysApi from '../../api/holidays'
 import { AcademicCalendarService } from '../../api/academiccalendar'
 import { LeaveService } from '../../api/leave'
+import { ActivityService } from '../../api/activity'
 import AttendanceInfo from '../AttendanceInfo.vue'
 
 const props = defineProps({
@@ -112,11 +115,13 @@ const attendances = ref([])
 const holidays = ref([])
 const academicTerms = ref([])
 const approvedLeaves = ref([])
+const activities = ref([])
 const loading = ref(false)
 const attendanceInfoRef = ref(null)
 const selectedAttendanceInfo = ref(null)
 const academicCalendarService = new AcademicCalendarService()
 const leaveService = new LeaveService()
+const activityService = new ActivityService()
 
 const calendar = computed(() => {
     const year = selectedYear.value
@@ -214,6 +219,35 @@ const approvedLeaveMap = computed(() => {
     return map
 })
 
+const activityMap = computed(() => {
+    const map = {}
+    activities.value.forEach((activity) => {
+        const startDate = strToDate(activity?.activity_date_start || activity?.date || activity?.activity_date)
+        const endDate = strToDate(activity?.activity_date_end || activity?.activity_date_start || activity?.date || activity?.activity_date)
+        if (!startDate || !endDate) return
+
+        const cursor = new Date(startDate)
+        const lastDate = endDate < startDate ? startDate : endDate
+
+        while (cursor <= lastDate) {
+            const dateKey = dateToStr(cursor)
+            if (!map[dateKey]) {
+                map[dateKey] = []
+            }
+
+            map[dateKey].push({
+                name: activity?.activity_name || 'มีกิจกรรม',
+                startTime: activity?.start_time || '',
+                endTime: activity?.end_time || '',
+                location: activity?.location || '',
+            })
+
+            cursor.setDate(cursor.getDate() + 1)
+        }
+    })
+    return map
+})
+
 const isTermOneOrTwo = (termName) => {
     const name = String(termName || '').toLowerCase()
     return /(เทอม\s*1|term\s*1|semester\s*1|ภาคเรียน\s*ที่?\s*1|เทอม\s*2|term\s*2|semester\s*2|ภาคเรียน\s*ที่?\s*2)/i.test(name)
@@ -273,6 +307,9 @@ const getDayClass = (dateObj) => {
     const leaveInfo = approvedLeaveMap.value[dstr]
     if (leaveInfo) return 'bg-emerald-400 text-emerald-900'
 
+    const activityInfo = activityMap.value[dstr]
+    if (activityInfo && activityInfo.length > 0) return 'bg-pink-300 text-pink-900'
+
     if (isFuture) return ''
 
     return 'bg-red-500 text-white'
@@ -280,15 +317,41 @@ const getDayClass = (dateObj) => {
 
 const getDayTitle = (dateObj) => {
     if (!dateObj) return ''
+    const labels = []
+
     const holidayTitle = getHolidayTitle(dateObj)
-    if (holidayTitle) return holidayTitle
+    if (holidayTitle) {
+        labels.push(`วันหยุด: ${holidayTitle}`)
+    }
 
     const leaveInfo = approvedLeaveMap.value[dateToStr(dateObj)]
     if (leaveInfo) {
         if (leaveInfo.reason) {
-            return `ลา (${leaveInfo.leaveType}): ${leaveInfo.reason}`
+            labels.push(`ลา (${leaveInfo.leaveType}): ${leaveInfo.reason}`)
+        } else {
+            labels.push(`ลา (${leaveInfo.leaveType})`)
         }
-        return `ลา (${leaveInfo.leaveType})`
+    }
+
+    const activityInfo = activityMap.value[dateToStr(dateObj)] || []
+    if (activityInfo.length > 0) {
+        const activityText = activityInfo
+            .map((item) => {
+                const timeRange = item.startTime && item.endTime
+                    ? `${item.startTime}-${item.endTime}`
+                    : (item.startTime || item.endTime || '')
+                const detailParts = [timeRange, item.location].filter(Boolean)
+                if (detailParts.length > 0) {
+                    return `กิจกรรม: ${item.name} (${detailParts.join(' | ')})`
+                }
+                return `กิจกรรม: ${item.name}`
+            })
+            .join('\n')
+        labels.push(activityText)
+    }
+
+    if (labels.length > 0) {
+        return labels.join('\n')
     }
 
     const termStatus = getAcademicTermStatus(dateObj)
@@ -304,7 +367,12 @@ const fetchAttendance = async () => {
         const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
         const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`
         const leaveUserId = props.teacher?._id || props.teacher?.id || props.teacher?.userid || ''
-        const [res, holidaysRes, leaveRes] = await Promise.all([
+        const activityUserId = props.teacher?.userid || props.teacher?.id || props.teacher?._id || ''
+        const activityPromise = activityUserId
+            ? activityService.getActivities(start, end, { userid: activityUserId })
+            : Promise.resolve({ data: [] })
+
+        const [res, holidaysRes, leaveRes, activitiesRes] = await Promise.all([
             reportApi.getAttendanceReport({
                 start,
                 end,
@@ -320,6 +388,7 @@ const fetchAttendance = async () => {
                 status: 'approved',
                 user_id: leaveUserId,
             }),
+            activityPromise,
         ])
 
         const leaveRows = leaveRes?.data || []
@@ -334,6 +403,7 @@ const fetchAttendance = async () => {
         }
 
         holidays.value = Array.isArray(holidaysRes.data) ? holidaysRes.data : []
+        activities.value = Array.isArray(activitiesRes?.data) ? activitiesRes.data : []
 
         const yearsToFetch = [year]
         if (month <= 2) {
@@ -354,6 +424,7 @@ const fetchAttendance = async () => {
         holidays.value = []
         academicTerms.value = []
         approvedLeaves.value = []
+        activities.value = []
     } finally {
         loading.value = false
     }

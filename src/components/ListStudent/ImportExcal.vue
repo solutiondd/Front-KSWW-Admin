@@ -28,7 +28,7 @@
                     <input type="file" accept="image/*" multiple @change="onImagesChange"
                         class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
                     <p v-if="imageFiles.length" class="text-xs text-success mt-1">รูปภาพที่เลือก: {{ imageFiles.length
-                    }} ไฟล์</p>
+                        }} ไฟล์</p>
                     <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพให้ตรงกับคอลัมน์ ชื่อรูป เช่น
                         <b>image001.jpg</b>
                         เพื่อให้ระบบแมปข้อมูลอัตโนมัติ
@@ -67,7 +67,7 @@
                                 <td>{{ student.first_name }}</td>
                                 <td>{{ student.last_name }}</td>
                                 <td>{{ student.rfid || '-' }}</td>
-                                <td>{{ student.grade }}</td>
+                                <td>{{ mapGradeDisplay(student.grade) }}</td>
                                 <td>{{ student.classroom }}</td>
                                 <td>{{ student.guardian_phone || '-' }}</td>
                                 <td>
@@ -110,6 +110,7 @@ import { ref, computed } from 'vue'
 import { StudentService } from '../../api/student'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
+import { mapGradeDisplay } from '../../utils/gradeSystem'
 
 async function resizeImage(file, maxSizeKB = 70, targetWidth = 450) {
     return new Promise((resolve, reject) => {

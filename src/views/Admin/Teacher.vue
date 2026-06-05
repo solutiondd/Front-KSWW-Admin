@@ -79,19 +79,25 @@
             @filterPosition="handleFilterPosition" @edit="openEditModal" @delete="openDeleteModal"
             @reset="openRePasswordModal" @detail="openDetailModal" />
 
-        <div v-if="totalPages > 1" class="flex justify-center">
-            <div class="join">
-                <button class="join-item btn btn-sm" @click="goToPage(currentPage - 1)" :disabled="currentPage === 1">
-                    ‹
-                </button>
-                <button v-for="page in displayedPages" :key="page" class="join-item btn btn-sm"
-                    :class="{ 'btn-active': page === currentPage }" @click="goToPage(page)">
-                    {{ page }}
-                </button>
-                <button class="join-item btn btn-sm" @click="goToPage(currentPage + 1)"
-                    :disabled="currentPage === totalPages">
-                    ›
-                </button>
+        <div v-if="totalPages > 1" class="flex flex-col items-center gap-2">
+            <div class="flex justify-center">
+                <div class="join">
+                    <button class="join-item btn btn-sm" @click="goToPage(currentPage - 1)"
+                        :disabled="currentPage === 1">
+                        ‹
+                    </button>
+                    <button v-for="page in displayedPages" :key="page" class="join-item btn btn-sm"
+                        :class="{ 'btn-active': page === currentPage }" @click="goToPage(page)">
+                        {{ page }}
+                    </button>
+                    <button class="join-item btn btn-sm" @click="goToPage(currentPage + 1)"
+                        :disabled="currentPage === totalPages">
+                        ›
+                    </button>
+                </div>
+            </div>
+            <div class="text-sm text-base-content/60 text-center text-white">
+                ทั้งหมด {{ totalItems }} รายการ (หน้า {{ currentPage }} / {{ totalPages }})
             </div>
         </div>
 
@@ -173,6 +179,8 @@ const updateModalRef = ref(null)
 const createModalRef = ref(null)
 const deleteModalRef = ref(null)
 const rePasswordModalRef = ref(null)
+
+const totalItems = computed(() => teachers.value.length)
 
 const totalPages = computed(() => Math.ceil(teachers.value.length / itemsPerPage.value))
 

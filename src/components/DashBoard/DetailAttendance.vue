@@ -24,7 +24,7 @@
                     <div v-if="props.role !== 'teacher'" class="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
                         <p class="text-xs text-yellow-600 mb-1">ชั้นเรียน</p>
                         <p class="font-semibold text-yellow-900">
-                            {{ `${selectedItem.grade}/${selectedItem.classroom}` }}
+                            {{ formatGradeClassroomDisplay(selectedItem.grade, selectedItem.classroom) }}
                         </p>
                     </div>
                 </div>
@@ -80,6 +80,7 @@
 </template>
 <script setup>
 import { ref } from 'vue'
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 const imgBaseUrl = import.meta.env.VITE_IMG_PROFILE_URL
 const detailModal = ref(null)
 const imageModal = ref(null)

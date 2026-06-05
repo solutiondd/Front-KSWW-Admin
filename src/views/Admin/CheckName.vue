@@ -31,7 +31,7 @@
                                 @change="handleGradeChange">
                                 <option value="">เลือกชั้นเรียน</option>
                                 <option v-for="grade in gradeList" :key="grade" :value="grade">
-                                    {{ grade }}
+                                    {{ mapGradeDisplay(grade) }}
                                 </option>
                             </select>
                         </div>
@@ -50,7 +50,7 @@
                             class="w-full col-span-1 lg:col-start-4 flex justify-end">
                             <div class="p-2 text-white bg-primary rounded-md text-center min-w-[120px]">
                                 <span class="block text-sm font-medium text-secondary">ชั้นปี / ห้อง</span>
-                                <span>{{ teacherGrade }}/{{ teacherClassroom }}</span>
+                                <span>{{ mapGradeDisplay(teacherGrade) }}/{{ teacherClassroom }}</span>
                             </div>
                         </div>
                     </template>
@@ -86,8 +86,10 @@ import { DepartmentService } from '../../api/department';
 import { PositionService } from '../../api/position';
 import reportApi from '../../api/report';
 import { LeaveService } from '../../api/leave';
+import { ActivityService } from '../../api/activity';
 import CheckNameTable from '../../components/CheckName/Table.vue';
 import featureFlags from '../../config/featureFlags';
+import { mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem';
 import Swal from 'sweetalert2';
 
 const studentService = new StudentService();
@@ -96,6 +98,7 @@ const classRoomService = new ClassRoomService();
 const departmentService = new DepartmentService();
 const positionService = new PositionService();
 const leaveService = new LeaveService();
+const activityService = new ActivityService();
 const residentRole = localStorage.getItem('residentRole') || '';
 const teacherGrade = localStorage.getItem('grade') || '';
 const teacherClassroom = localStorage.getItem('classroom') || '';
@@ -124,12 +127,7 @@ const leaveStatusPriority = {
 };
 
 const gradeList = computed(() => {
-    const grades = new Set(classrooms.value.map(c => c.grade));
-    return Array.from(grades).sort((a, b) => {
-        const numA = parseInt(a.split('.')[1]);
-        const numB = parseInt(b.split('.')[1]);
-        return numA - numB;
-    });
+    return toVisibleSortedGrades(classrooms.value.map(c => c.grade));
 });
 
 const filteredClassrooms = computed(() => {
@@ -147,11 +145,7 @@ const loadClassrooms = async () => {
         classrooms.value = response.data || [];
 
         if (residentRole !== 'teacher' && selectedRole.value === 'student') {
-            const grades = Array.from(new Set(classrooms.value.map(c => c.grade))).sort((a, b) => {
-                const numA = parseInt(a.split('.')[1]);
-                const numB = parseInt(b.split('.')[1]);
-                return numA - numB;
-            });
+            const grades = toVisibleSortedGrades(classrooms.value.map(c => c.grade));
             if (grades.length > 0) {
                 selectedGrade.value = grades[0];
                 const firstClassroom = classrooms.value.find(c => c.grade === grades[0]);
@@ -233,11 +227,7 @@ const handleRoleChange = () => {
     if (selectedRole.value === 'teacher') {
         loadUsers();
     } else {
-        const grades = Array.from(new Set(classrooms.value.map(c => c.grade))).sort((a, b) => {
-            const numA = parseInt(a.split('.')[1]);
-            const numB = parseInt(b.split('.')[1]);
-            return numA - numB;
-        });
+        const grades = toVisibleSortedGrades(classrooms.value.map(c => c.grade));
         if (grades.length > 0) {
             selectedGrade.value = grades[0];
             const firstClassroom = classrooms.value.find(c => c.grade === grades[0]);
@@ -278,6 +268,32 @@ const getLeaveStudentKeys = (leaveRequest) => {
 const isDateInLeaveRange = (date, startDate, endDate) => {
     if (!date || !startDate || !endDate) return false;
     return date >= startDate && date <= endDate;
+};
+
+const normalizeDateString = (value) => {
+    if (!value) return '';
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+    }
+    const d = new Date(value);
+    if (isNaN(d)) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getActivityStudentKeys = (activity) => {
+    const user = activity?.user_id;
+    return [user?._id, user?.userid, user?.id, user].filter(Boolean).map((value) => String(value));
+};
+
+const isDateInActivityRange = (date, startDate, endDate) => {
+    if (!date || !startDate || !endDate) return false;
+    const start = normalizeDateString(startDate);
+    const end = normalizeDateString(endDate);
+    if (!start || !end) return false;
+    return date >= start && date <= end;
 };
 
 const mapDailyStatus = async (studentList, roleType = 'student') => {
@@ -321,7 +337,7 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
         attendanceParams.department = selectedDepartment.value;
     }
 
-    const [attendanceResponse, leaveResponse] = await Promise.all([
+    const [attendanceResponse, leaveResponse, activityResponse] = await Promise.all([
         reportApi.getAttendanceReport(attendanceParams),
         leaveService.getLeaveRequests({
             start_date: selectedDate.value,
@@ -329,12 +345,15 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
             status: '',
             user_id: '',
         }),
+        activityService.getActivities(selectedDate.value, selectedDate.value),
     ]);
 
     const attendanceRows = attendanceResponse?.data || [];
     const leaveRows = leaveResponse?.data || [];
+    const activityRows = activityResponse?.data || [];
     const presentKeys = new Set();
     const leaveByStudentKey = new Map();
+    const activityByStudentKey = new Map();
 
     attendanceRows.forEach((student) => {
         if (!hasAttendanceOnDate(student, selectedDate.value)) {
@@ -375,44 +394,84 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
         });
     });
 
+    activityRows.forEach((activity) => {
+        if (!isDateInActivityRange(selectedDate.value, activity?.activity_date_start, activity?.activity_date_end)) {
+            return;
+        }
+
+        getActivityStudentKeys(activity).forEach((key) => {
+            if (!activityByStudentKey.has(key)) {
+                activityByStudentKey.set(key, activity);
+            }
+        });
+    });
+
     const nextAttendanceData = {};
     const nextPendingLeaveApprovals = {};
 
     studentList.forEach((student) => {
         const keys = [student?._id, student?.userid, student?.id].filter(Boolean).map((value) => String(value));
-        const isPresent = keys.some((key) => presentKeys.has(key));
+        const activity = keys.map((key) => activityByStudentKey.get(key)).find(Boolean);
+        const previousActivity = activity
+            ? {
+                activityId: activity?._id || null,
+                activityName: activity?.activity_name || 'มีกิจกรรม',
+                activityDateStart: normalizeDateString(activity?.activity_date_start),
+                activityDateEnd: normalizeDateString(activity?.activity_date_end),
+                startTime: activity?.start_time || '',
+                endTime: activity?.end_time || '',
+                location: activity?.location || '',
+                remark: activity?.remark || '',
+            }
+            : null;
 
+        const leaveRequest = keys.map((key) => leaveByStudentKey.get(key)).find(Boolean);
+        if (leaveRequest) {
+            const leaveStatus = String(leaveRequest?.status || '').toLowerCase();
+            const leaveTypeName = leaveRequest?.leave_type_id?.name || 'ลา';
+            const reason = leaveRequest?.reason || '';
+
+            nextAttendanceData[student._id] = {
+                status: 'leave',
+                leaveType: leaveTypeName,
+                remark: reason,
+                leaveRequestId: leaveRequest?._id || null,
+                leaveStatus,
+                previousActivity,
+            };
+
+            if (pendingLeaveStatuses.has(leaveStatus)) {
+                nextPendingLeaveApprovals[student._id] = {
+                    requestId: leaveRequest?._id || null,
+                    leaveType: leaveTypeName,
+                    reason,
+                    previousActivity,
+                };
+            }
+            return;
+        }
+
+        if (activity) {
+            nextAttendanceData[student._id] = {
+                status: 'activity',
+                activityId: activity?._id || null,
+                activityName: activity?.activity_name || 'มีกิจกรรม',
+                activityDateStart: normalizeDateString(activity?.activity_date_start),
+                activityDateEnd: normalizeDateString(activity?.activity_date_end),
+                startTime: activity?.start_time || '',
+                endTime: activity?.end_time || '',
+                location: activity?.location || '',
+                remark: activity?.remark || '',
+            };
+            return;
+        }
+
+        const isPresent = keys.some((key) => presentKeys.has(key));
         if (isPresent) {
             nextAttendanceData[student._id] = {
                 status: 'present',
                 leaveType: null,
                 remark: '',
-            };
-            return;
-        }
-
-        const leaveRequest = keys.map((key) => leaveByStudentKey.get(key)).find(Boolean);
-        if (!leaveRequest) {
-            return;
-        }
-
-        const leaveStatus = String(leaveRequest?.status || '').toLowerCase();
-        const leaveTypeName = leaveRequest?.leave_type_id?.name || 'ลา';
-        const reason = leaveRequest?.reason || '';
-
-        nextAttendanceData[student._id] = {
-            status: 'leave',
-            leaveType: leaveTypeName,
-            remark: reason,
-            leaveRequestId: leaveRequest?._id || null,
-            leaveStatus,
-        };
-
-        if (pendingLeaveStatuses.has(leaveStatus)) {
-            nextPendingLeaveApprovals[student._id] = {
-                requestId: leaveRequest?._id || null,
-                leaveType: leaveTypeName,
-                reason,
             };
         }
     });

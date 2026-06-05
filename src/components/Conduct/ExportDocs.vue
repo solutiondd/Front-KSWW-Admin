@@ -253,6 +253,7 @@ import Swal from 'sweetalert2'
 import { BehaviorService } from '../../api/behavior.js'
 import { ClassRoomService } from '../../api/class-room.js'
 import { TeacherService } from '../../api/teacher.js'
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 import {
     AlignmentType,
     BorderStyle,
@@ -473,7 +474,7 @@ const liveDocumentPreview = computed(() => {
     const doc = misconductDocType.value
     const studentName = props.studentInfo?.name || '(ชื่อนักเรียน)'
     const studentId = props.studentInfo?.userid || '........'
-    const className = `${props.studentInfo?.grade || 'ม....'} / ${props.studentInfo?.classroom || '....'}`
+    const className = formatGradeClassroomDisplay(props.studentInfo?.grade || 'ม....', props.studentInfo?.classroom || '....')
     const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     const mark = (label) => misconductChecked.value.includes(label) ? '☑' : '☐'
     const punishMark = (label) => punishmentChecked.value.includes(label) ? '☑' : '☐'
@@ -943,7 +944,7 @@ async function exportDocx() {
         const dateParts = getDocDateParts(now)
         const followUpParts = getDocDateParts(followUpDate)
         const studentName = props.studentInfo?.name || '................................................'
-        const studentClass = `${props.studentInfo?.grade || 'ม....'} / ${props.studentInfo?.classroom || '....'}`
+        const studentClass = formatGradeClassroomDisplay(props.studentInfo?.grade || 'ม....', props.studentInfo?.classroom || '....')
 
         let adviserName = ''
         let deputyDirectorName = ''
@@ -1444,7 +1445,7 @@ async function exportDocx() {
             const cellB = { top: nb, bottom: nb, left: nb, right: nb }
             const mark = (label) => checked.checkedLabels.has(label) ? '(/)' : '( )'
             const punishmentMark = (label) => checked.punishmentSelections?.has(label) ? '(/)' : '( )'
-            const classText = `${props.studentInfo?.grade || '....'} / ${props.studentInfo?.classroom || '....'}`
+            const classText = formatGradeClassroomDisplay(props.studentInfo?.grade || '....', props.studentInfo?.classroom || '....')
             const selectedBehaviorTypeName = checked.behaviorTypeName || '........................................'
             const offenseCountText = checked.offenseCount || '........'
             const makeCompactCell = (text, width) => new TableCell({
@@ -1700,7 +1701,7 @@ async function exportDocx() {
 
             // ════ START: จค.กก 4 Document ════
         } else if (selectedDocumentType === 'จค.กก 4') {
-            const classText = `${props.studentInfo?.grade || 'ม....'} / ${props.studentInfo?.classroom || '....'}`
+            const classText = formatGradeClassroomDisplay(props.studentInfo?.grade || 'ม....', props.studentInfo?.classroom || '....')
             const misconductSummary = checked.doc4MisconductText || '.................................................................................'
             const meetingParts = getDocDateParts(checked.meetingDate)
             const meetingTimeText = checked.meetingTime || '................'
@@ -1765,7 +1766,7 @@ async function exportDocx() {
 
             // ════ START: จค.กก 5 Document ════
         } else if (selectedDocumentType === 'จค.กก 5') {
-            const classText = `${props.studentInfo?.grade || 'ม....'} / ${props.studentInfo?.classroom || '....'}`
+            const classText = formatGradeClassroomDisplay(props.studentInfo?.grade || 'ม....', props.studentInfo?.classroom || '....')
             const studentCode = props.studentInfo?.userid || '................'
             const guardianNameText = checked.doc5GuardianName || '.....................................................'
             const currentAddressText = checked.doc5CurrentAddress || '...................................................'

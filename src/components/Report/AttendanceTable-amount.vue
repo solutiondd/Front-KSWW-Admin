@@ -56,8 +56,8 @@
                         </td>
                         <td>{{ item.name }}</td>
                         <td class="text-center">
-                            <span v-if="role === 'student'">{{ item.grade && item.classroom ?
-                                `${item.grade}/${item.classroom}` : '-' }}</span>
+                            <span v-if="role === 'student'">{{ formatGradeClassroomDisplay(item.grade, item.classroom)
+                            }}</span>
                             <span v-else>{{ item.department || '-' }}</span>
                         </td>
                         <td class="text-center">{{ totalDays }}</td>
@@ -81,8 +81,8 @@
                         <div class="badge badge-primary badge-sm mb-2">{{ item.userid }}</div>
                         <h3 class="font-bold text-lg">{{ item.name }}</h3>
                         <p class="text-sm text-base-content/70">
-                            <span v-if="role === 'student'">{{ item.grade && item.classroom ?
-                                `${item.grade}/${item.classroom}` : '-' }}</span>
+                            <span v-if="role === 'student'">{{ formatGradeClassroomDisplay(item.grade, item.classroom)
+                            }}</span>
                             <span v-else>{{ item.department || '-' }}</span>
                         </p>
                     </div>
@@ -141,8 +141,7 @@
     </div>
     <div v-if="pagination && pagination.total_items > 0"
         class="text-center text-sm text-white text-base-content/60 mt-2">
-        แสดง {{ ((pagination.page - 1) * pagination.limit) + 1 }} - {{ Math.min(pagination.page * pagination.limit,
-            pagination.total_items) }} จาก {{ pagination.total_items }} รายการ
+        ทั้งหมด {{ pagination.total_items }} รายการ (หน้า {{ pagination.page }} / {{ pagination.total_pages }})
     </div>
 </template>
 
@@ -153,6 +152,7 @@ import { saveAs } from 'file-saver'
 import reportApi from '../../api/report.js'
 import holidaysApi from '../../api/holidays.js'
 import { ref, computed, computed as vueComputed } from 'vue'
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 
 const loadingExportDoc = ref(false)
 async function exportDocxReport() {
@@ -613,7 +613,7 @@ async function exportAllToExcel() {
             return {
                 'รหัส': item.userid,
                 'ชื่อ - นามสกุล': item.name,
-                [props.role === 'student' ? 'ชั้น/ห้อง' : 'หน่วยงาน']: props.role === 'student' ? (item.grade && item.classroom ? `${item.grade}/${item.classroom}` : '-') : (item.department || '-'),
+                [props.role === 'student' ? 'ชั้น/ห้อง' : 'หน่วยงาน']: props.role === 'student' ? formatGradeClassroomDisplay(item.grade, item.classroom) : (item.department || '-'),
                 'ลงเวลา': totalDaysVal,
                 'มาปกติ': presentNormal,
                 'ไม่ได้สแกน': totalDaysVal - presentNormal - late,

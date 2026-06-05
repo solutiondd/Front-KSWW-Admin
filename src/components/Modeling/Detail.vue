@@ -47,7 +47,7 @@
                             </span>
                             <p class="font-medium">
                                 <span v-if="item.role === 'student'">
-                                    {{ item.grade }} / {{ item.classroom }}
+                                    {{ formatGradeClassroomDisplay(item.grade, item.classroom) }}
                                 </span>
                                 <span v-else>
                                     {{ item.department || '-' }}
@@ -117,6 +117,7 @@
 import { ref } from 'vue';
 import ReModel from './ReModel.vue';
 import DeleteModeling from './Delete.vue';
+import { formatGradeClassroomDisplay } from '../../utils/gradeSystem'
 
 const getInitials = (name) => {
     if (!name) return '?';

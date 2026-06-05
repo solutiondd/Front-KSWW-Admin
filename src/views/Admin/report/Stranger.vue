@@ -58,7 +58,7 @@
             </div>
 
             <div v-if="totalRecords > 0" class="text-center text-sm text-base-content/60 mt-4 text-white">
-                แสดง {{ startItem }} - {{ endItem }} จาก {{ totalRecords }} รายการ
+                ทั้งหมด {{ totalRecords }} รายการ (หน้า {{ pagination.page }} / {{ totalPages }})
             </div>
         </div>
     </div>

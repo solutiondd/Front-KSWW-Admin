@@ -7,13 +7,14 @@ export class StudentService {
     this.token = localStorage.getItem("token");
   }
 
-  async getStudents(grade, classroom, userid, name) {
+  async getStudents(grade, classroom, userid, name, line_connect) {
     try {
       const params = new URLSearchParams();
       if (grade) params.append("grade", grade);
       if (classroom) params.append("classroom", classroom);
       if (userid) params.append("userid", userid);
       if (name) params.append("name", name);
+      if (line_connect) params.append("line_connect", line_connect);
 
       let config = {
         method: "get",
@@ -196,6 +197,30 @@ export class StudentService {
       return response.data;
     } catch (error) {
       console.error("Search student error:", error);
+      throw error;
+    }
+  }
+
+  async deleteLineStudent({ lineuser_id, userid }) {
+    try {
+      this.token = localStorage.getItem("token");
+      const config = {
+        method: "delete",
+        maxBodyLength: Infinity,
+        url: `${this.baseUrl}line/students`,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.token}`,
+        },
+        data: {
+          lineuser_id,
+          userid,
+        },
+      };
+      const response = await axios.request(config);
+      return response.data;
+    } catch (error) {
+      console.error("Delete line student error:", error);
       throw error;
     }
   }

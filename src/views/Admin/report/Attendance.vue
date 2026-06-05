@@ -48,7 +48,8 @@
                     <select v-model="filters.grade" class="select select-sm select-bordered w-full"
                         :disabled="filters.role === 'teacher'">
                         <option value="">ทั้งหมด</option>
-                        <option v-for="grade in availableGrades" :key="grade" :value="grade">{{ grade }}</option>
+                        <option v-for="grade in availableGrades" :key="grade" :value="grade">{{ mapGradeDisplay(grade)
+                            }}</option>
                     </select>
                 </div>
 
@@ -67,7 +68,7 @@
                     <div
                         class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
                         <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>
-                        <span>{{ teacherGrade }}/{{ teacherClassroom }}</span>
+                        <span>{{ mapGradeDisplay(teacherGrade) }}/{{ teacherClassroom }}</span>
                     </div>
                 </div>
             </div>
@@ -146,6 +147,7 @@ import ReportTableAmount from '../../../components/Report/AttendanceTable-amount
 import AttendanceDetail from '../../../components/Report/AttendanceDetail.vue'
 import reportApi from '../../../api/report.js'
 import { ClassRoomService } from '../../../api/class-room.js'
+import { mapGradeDisplay, toVisibleSortedGrades } from '../../../utils/gradeSystem'
 const tableType = ref('detail')
 
 function toggleTableType() {
@@ -164,8 +166,8 @@ const teacherClassroom = localStorage.getItem('classroom') || ''
 const filters = ref({
     role: residentRole === 'teacher' ? 'student' : 'student',
     search: '',
-    grade: residentRole === 'teacher' ? teacherGrade : 'ม.1',
-    classroom: residentRole === 'teacher' ? teacherClassroom : 1,
+    grade: residentRole === 'teacher' ? teacherGrade : '',
+    classroom: residentRole === 'teacher' ? teacherClassroom : '',
     start: getDefaultDate(),
     end: getDefaultDate(),
 })
@@ -186,10 +188,10 @@ const handleRoleChange = () => {
     if (residentRole !== 'teacher') {
         if (filters.value.role === 'teacher') {
             filters.value.grade = ''
-            filters.value.classroom = 0
+            filters.value.classroom = ''
         } else {
-            filters.value.grade = 'ม.1'
-            filters.value.classroom = 1
+            filters.value.grade = availableGrades.value[0] || ''
+            filters.value.classroom = availableClassrooms.value[0] || ''
         }
         pagination.value.page = 1
         fetchData()
@@ -255,8 +257,8 @@ const resetFilters = () => {
         filters.value = {
             role: 'student',
             search: '',
-            grade: 'ม.1',
-            classroom: 1,
+            grade: availableGrades.value[0] || '',
+            classroom: availableClassrooms.value[0] || '',
             start: getDefaultDate(),
             end: getDefaultDate(),
         }
@@ -281,12 +283,7 @@ const classrooms = ref([])
 
 const availableGrades = computed(() => {
     if (!classrooms.value || classrooms.value.length === 0) return []
-    const grades = [...new Set(classrooms.value.map(c => c.grade))]
-    return grades.sort((a, b) => {
-        const numA = parseInt((a || '').replace('ม.', ''))
-        const numB = parseInt((b || '').replace('ม.', ''))
-        return numA - numB
-    })
+    return toVisibleSortedGrades(classrooms.value.map(c => c.grade))
 })
 
 const availableClassrooms = computed(() => {
@@ -306,6 +303,14 @@ async function fetchClassrooms() {
         const res = await classRoomService.getClassRooms()
         if (res.message === 'Success' && res.data) {
             classrooms.value = res.data
+            if (residentRole !== 'teacher' && filters.value.role !== 'teacher') {
+                if (!filters.value.grade) {
+                    filters.value.grade = availableGrades.value[0] || ''
+                }
+                if (!filters.value.classroom) {
+                    filters.value.classroom = availableClassrooms.value[0] || ''
+                }
+            }
         }
     } catch (e) {
         console.error('Error fetching classrooms:', e)
