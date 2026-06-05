@@ -58,20 +58,25 @@
                                 <span v-if="hasGuardian(student)" class="inline-flex items-center shrink-0">
                                     <span class="guardian-popover-root relative inline-flex items-center">
                                         <button type="button"
-                                            class="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-pointer"
+                                            class="relative inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-pointer"
                                             :aria-expanded="isGuardianOpen(student)"
                                             @click.stop="toggleGuardian(student)">
-                                            LINE
+                                            <span>LINE</span>
+                                            <span v-if="getGuardianCount(student) > 1"
+                                                class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold leading-none text-error-content shadow">
+                                                {{ getGuardianCount(student) }}
+                                            </span>
                                         </button>
                                         <div v-if="isGuardianOpen(student)" @click.stop
                                             class="absolute right-full top-1/2 z-50 mr-2 w-64 max-w-[calc(100vw-2rem)] -translate-y-1/2 rounded-xl border border-base-300 bg-base-100 p-3 text-left shadow-xl md:left-auto md:right-0 md:translate-x-0">
-                                            <div class="flex items-start justify-between gap-3">
+                                            <div v-for="(guardian, guardianIndex) in getGuardians(student)"
+                                                :key="guardian.key" class="flex items-start justify-between gap-3"
+                                                :class="guardianIndex < getGuardianCount(student) - 1 ? 'mb-3 border-b border-base-200 pb-3' : ''">
                                                 <div class="flex items-center gap-3 min-w-0">
                                                     <div class="avatar">
                                                         <div class="w-12 h-12 rounded-full bg-base-200 overflow-hidden">
-                                                            <img v-if="getGuardianInfo(student).picture"
-                                                                :src="getGuardianInfo(student).picture"
-                                                                :alt="getGuardianInfo(student).name || 'guardian'"
+                                                            <img v-if="guardian.picture" :src="guardian.picture"
+                                                                :alt="guardian.name || 'guardian'"
                                                                 class="w-full h-full object-cover" />
                                                             <div v-else
                                                                 class="w-full h-full flex items-center justify-center text-xs text-base-content/60">
@@ -80,19 +85,21 @@
                                                         </div>
                                                     </div>
                                                     <div class="min-w-0">
-                                                        <div class="text-xs text-base-content/60">ผู้ปกครอง LINE</div>
-                                                        <div class="font-medium truncate">{{
-                                                            getGuardianInfo(student).name
-                                                            || '-' }}</div>
-                                                        <div class="text-xs text-base-content/70">{{
-                                                            getGuardianInfo(student).phone || '-' }}</div>
+                                                        <div class="text-xs text-base-content/60">
+                                                            ผู้ปกครอง LINE{{ getGuardianCount(student) > 1 ? `
+                                                            ${guardianIndex + 1}` : '' }}
+                                                        </div>
+                                                        <div class="font-medium truncate">{{ guardian.name || '-' }}
+                                                        </div>
+                                                        <div class="text-xs text-base-content/70">{{ guardian.phone ||
+                                                            '-' }}</div>
                                                     </div>
                                                 </div>
                                                 <button type="button" class="btn btn-ghost btn-xs btn-square text-error"
-                                                    :title="getGuardianLineUserId(student) ? 'ลบ' : 'ไม่พบ lineuser_id'"
-                                                    :disabled="guardianDeletingKey === getGuardianKey(student)"
-                                                    @click.stop="deleteGuardianLine(student)">
-                                                    <span v-if="guardianDeletingKey === getGuardianKey(student)"
+                                                    :title="guardian.lineuserId ? 'ลบ' : 'ไม่พบ lineuser_id'"
+                                                    :disabled="guardianDeletingKey === guardian.key"
+                                                    @click.stop="deleteGuardianLine(student, guardian)">
+                                                    <span v-if="guardianDeletingKey === guardian.key"
                                                         class="loading loading-spinner loading-xs"></span>
                                                     <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
                                                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -217,20 +224,25 @@
                                     <span v-if="hasGuardian(student)"
                                         class="guardian-popover-root relative inline-flex items-center">
                                         <button type="button"
-                                            class="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-pointer"
+                                            class="relative inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-[#06C755] px-2 text-[10px] font-bold tracking-wide text-white cursor-pointer"
                                             :aria-expanded="isGuardianOpen(student)"
                                             @click.stop="toggleGuardian(student)">
-                                            LINE
+                                            <span>LINE</span>
+                                            <span v-if="getGuardianCount(student) > 1"
+                                                class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold leading-none text-error-content shadow">
+                                                {{ getGuardianCount(student) }}
+                                            </span>
                                         </button>
                                         <div v-if="isGuardianOpen(student)" @click.stop
                                             class="absolute right-full top-1/2 z-50 mr-2 w-64 max-w-[calc(100vw-2rem)] -translate-y-1/2 rounded-xl border border-base-300 bg-base-100 p-3 text-left shadow-xl md:left-auto md:right-0 md:translate-x-0">
-                                            <div class="flex items-start justify-between gap-3">
+                                            <div v-for="(guardian, guardianIndex) in getGuardians(student)"
+                                                :key="guardian.key" class="flex items-start justify-between gap-3"
+                                                :class="guardianIndex < getGuardianCount(student) - 1 ? 'mb-3 border-b border-base-200 pb-3' : ''">
                                                 <div class="flex items-center gap-3 min-w-0">
                                                     <div class="avatar">
                                                         <div class="w-12 h-12 rounded-full bg-base-200 overflow-hidden">
-                                                            <img v-if="getGuardianInfo(student).picture"
-                                                                :src="getGuardianInfo(student).picture"
-                                                                :alt="getGuardianInfo(student).name || 'guardian'"
+                                                            <img v-if="guardian.picture" :src="guardian.picture"
+                                                                :alt="guardian.name || 'guardian'"
                                                                 class="w-full h-full object-cover" />
                                                             <div v-else
                                                                 class="w-full h-full flex items-center justify-center text-xs text-base-content/60">
@@ -239,21 +251,22 @@
                                                         </div>
                                                     </div>
                                                     <div class="min-w-0">
-                                                        <div class="text-xs text-base-content/60">ผู้ปกครอง LINE</div>
-                                                        <div class="font-medium truncate">{{
-                                                            getGuardianInfo(student).name
-                                                            || '-'
-                                                        }}</div>
-                                                        <div class="text-xs text-base-content/70">{{
-                                                            getGuardianInfo(student).phone ||
+                                                        <div class="text-xs text-base-content/60">
+                                                            ผู้ปกครอง LINE{{ getGuardianCount(student) > 1 ? `
+                                                            ${guardianIndex + 1}`
+                                                                : '' }}
+                                                        </div>
+                                                        <div class="font-medium truncate">{{ guardian.name || '-' }}
+                                                        </div>
+                                                        <div class="text-xs text-base-content/70">{{ guardian.phone ||
                                                             '-' }}</div>
                                                     </div>
                                                 </div>
                                                 <button type="button" class="btn btn-ghost btn-xs btn-square text-error"
-                                                    :title="getGuardianLineUserId(student) ? 'ลบ' : 'ไม่พบ lineuser_id'"
-                                                    :disabled="guardianDeletingKey === getGuardianKey(student)"
-                                                    @click.stop="deleteGuardianLine(student)">
-                                                    <span v-if="guardianDeletingKey === getGuardianKey(student)"
+                                                    :title="guardian.lineuserId ? 'ลบ' : 'ไม่พบ lineuser_id'"
+                                                    :disabled="guardianDeletingKey === guardian.key"
+                                                    @click.stop="deleteGuardianLine(student, guardian)">
+                                                    <span v-if="guardianDeletingKey === guardian.key"
                                                         class="loading loading-spinner loading-xs"></span>
                                                     <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4"
                                                         fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -370,37 +383,37 @@ const getScoreBadgeClass = (score) => {
     return 'bg-black text-white border-black'
 }
 
-const getGuardianInfo = (student) => {
+const getGuardianLineUserId = (guardian, student) => {
+    if (guardian) {
+        return guardian?._id || guardian?.lineuser_id || guardian?.line_user_id || guardian?.lineUserId || ''
+    }
+    const guardianSource = student?.guadians ?? student?.guardians
+    const primaryGuardian = Array.isArray(guardianSource) ? guardianSource[0] : guardianSource
+    return primaryGuardian?._id || primaryGuardian?.lineuser_id || primaryGuardian?.line_user_id || primaryGuardian?.lineUserId || student?.lineuser_id || student?.line_user_id || ''
+}
+
+const getGuardians = (student) => {
     const guardianSource = student?.guadians ?? student?.guardians
 
     if (!guardianSource) {
-        return {
-            name: '',
-            picture: '',
-            phone: student?.guardian_phone || ''
-        }
+        return []
     }
 
-    const guardian = Array.isArray(guardianSource) ? guardianSource[0] : guardianSource
+    const guardianList = Array.isArray(guardianSource) ? guardianSource : [guardianSource]
 
-    return {
+    return guardianList.map((guardian, index) => ({
+        key: `${getGuardianKey(student)}-${getGuardianLineUserId(guardian, student) || index}`,
         name: guardian?.name || '',
         picture: guardian?.picture || '',
-        phone: guardian?.guardian_phone || student?.guardian_phone || ''
-    }
+        phone: guardian?.guardian_phone || guardian?.phone || (guardianList.length === 1 ? student?.guardian_phone || '' : ''),
+        lineuserId: getGuardianLineUserId(guardian, student)
+    }))
 }
 
-const getGuardianLineUserId = (student) => {
-    const guardianSource = student?.guadians ?? student?.guardians
-    const guardian = Array.isArray(guardianSource) ? guardianSource[0] : guardianSource
-    return guardian?._id || guardian?.lineuser_id || guardian?.line_user_id || guardian?.lineUserId || student?.lineuser_id || student?.line_user_id || ''
-}
+const getGuardianCount = (student) => getGuardians(student).length
 
 const hasGuardian = (student) => {
-    const guardianSource = student?.guadians ?? student?.guardians
-    if (!guardianSource) return false
-    if (Array.isArray(guardianSource)) return guardianSource.length > 0
-    return Boolean(guardianSource.name || guardianSource.picture || student?.guardian_phone)
+    return getGuardianCount(student) > 0
 }
 
 const getGuardianKey = (student) => {
@@ -416,8 +429,8 @@ const toggleGuardian = (student) => {
     openGuardianKey.value = openGuardianKey.value === key ? null : key
 }
 
-const deleteGuardianLine = async (student) => {
-    const lineuser_id = getGuardianLineUserId(student)
+const deleteGuardianLine = async (student, guardian) => {
+    const lineuser_id = guardian?.lineuserId || getGuardianLineUserId(null, student)
     if (!lineuser_id) return
 
     const { default: Swal } = await import('sweetalert2')
@@ -437,7 +450,7 @@ const deleteGuardianLine = async (student) => {
 
     if (!confirmResult.isConfirmed) return
 
-    const key = getGuardianKey(student)
+    const key = guardian?.key || getGuardianKey(student)
     guardianDeletingKey.value = key
     try {
         const result = await studentService.deleteLineStudent({

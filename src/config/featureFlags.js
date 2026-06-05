@@ -25,7 +25,7 @@ export default {
 
   // ฟีเจอร์สำหรับไลน์หน้านักเรียน
   student: {
-    enableLineStatusFilter: false, // true = แสดงตัวกรองสถานะ LINE, false = ซ่อน
+    enableLineStatusFilter: true, // true = แสดงตัวกรองสถานะ LINE, false = ซ่อน
   },
 
   // ฟีเจอร์สำหรับเมนู
