@@ -2,7 +2,9 @@ export default {
   // ฟีเจอร์สำหรับระบบชั้นเรียน
   gradeSystem: {
     enableDisplayMapping: false, // true = แสดงชั้นเรียนแบบ NS/KG/YR ทั้งระบบ
-    enableLowerLevels: false, // true = แสดงระดับ เตรียมอนุบาล-ป.6
+    enableEarlyChildhoodLevels: false, // true = แสดงระดับ เตรียมอนุบาล-อนุบาล 2
+    enablePrimaryLevels: false, // true = แสดงระดับ ป.1-ป.6
+    enableLowerLevels: false, // legacy: true = แสดงระดับ เตรียมอนุบาล-ป.6
     enablePromoteLevel: true, // true = แสดงปุ่มเลื่อนระดับห้องเรียน
   },
 
@@ -32,5 +34,6 @@ export default {
   menu: {
     enableUniformInspection: true, // เมนูตรวจเครื่องแบบ
     enableReportUniformInspection: true, // เมนูรายงานตรวจระเบียบ
+    enableAllowanceSetting: true, // เมนูตั้งค่าสาย
   },
 };

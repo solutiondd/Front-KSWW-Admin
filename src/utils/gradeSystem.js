@@ -28,6 +28,23 @@ const getYearNumber = (grade) => {
   return match ? Number(match[1]) : null;
 };
 
+const isPrimary = (grade) => getPrimaryNumber(grade) !== null;
+
+const isEarlyChildhood = (grade) =>
+  isPrep(grade) || isKg1(grade) || isKg2(grade);
+
+const isLegacyLowerLevelsEnabled =
+  featureFlags.gradeSystem?.enableLowerLevels === true;
+
+const isEarlyChildhoodEnabled =
+  featureFlags.gradeSystem?.enableEarlyChildhoodLevels ??
+  isLegacyLowerLevelsEnabled;
+
+const isPrimaryEnabled =
+  featureFlags.gradeSystem?.enablePrimaryLevels ?? isLegacyLowerLevelsEnabled;
+
+const hasAnyLowerLevelsEnabled = isEarlyChildhoodEnabled || isPrimaryEnabled;
+
 export const getGradeSortOrder = (grade) => {
   if (!grade) return MAX_SORT;
 
@@ -78,7 +95,7 @@ export const getGradeUiLabel = (rawGrade) => {
     return mapGradeDisplay(rawGrade);
   }
 
-  if (!featureFlags.gradeSystem?.enableLowerLevels) {
+  if (!hasAnyLowerLevelsEnabled) {
     const secondary = getSecondaryNumber(rawGrade);
     if (secondary !== null) return `มัธยมศึกษาปีที่ ${secondary}`;
   }
@@ -94,10 +111,35 @@ export const getGradeUiBadge = (rawGrade) => {
     return mapped;
   }
 
-  if (!featureFlags.gradeSystem?.enableLowerLevels) {
+  if (!hasAnyLowerLevelsEnabled) {
     const secondary = getSecondaryNumber(rawGrade);
     if (secondary !== null) return String(secondary);
   }
+
+  return rawGrade;
+};
+
+export const getGradeCompactLabel = (rawGrade) => {
+  if (featureFlags.gradeSystem?.enableDisplayMapping) {
+    return mapGradeDisplay(rawGrade);
+  }
+
+  const secondary = getSecondaryNumber(rawGrade);
+  if (secondary !== null) return `ม.${secondary}`;
+
+  return rawGrade;
+};
+
+export const getGradeFullLabel = (rawGrade) => {
+  if (featureFlags.gradeSystem?.enableDisplayMapping) {
+    return mapGradeDisplay(rawGrade);
+  }
+
+  const primary = getPrimaryNumber(rawGrade);
+  if (primary !== null) return `ประถมศึกษาปีที่ ${primary}`;
+
+  const secondary = getSecondaryNumber(rawGrade);
+  if (secondary !== null) return `มัธยมศึกษาปีที่ ${secondary}`;
 
   return rawGrade;
 };
@@ -124,7 +166,8 @@ export const formatGradeClassroomDisplay = (grade, classroom) => {
 };
 
 export const shouldIncludeGrade = (grade) => {
-  if (featureFlags.gradeSystem?.enableLowerLevels) return true;
+  if (isEarlyChildhood(grade)) return isEarlyChildhoodEnabled;
+  if (isPrimary(grade)) return isPrimaryEnabled;
 
   const order = getGradeSortOrder(grade);
   if (order === MAX_SORT) return true;
@@ -133,20 +176,18 @@ export const shouldIncludeGrade = (grade) => {
 
 export const getConfiguredGrades = () => {
   const secondary = ["ม.1", "ม.2", "ม.3", "ม.4", "ม.5", "ม.6"];
-  if (!featureFlags.gradeSystem?.enableLowerLevels) return secondary;
+  if (!hasAnyLowerLevelsEnabled) return secondary;
 
-  return [
-    "เตรียมอนุบาล",
-    "อนุบาล 1",
-    "อนุบาล 2",
-    "ป.1",
-    "ป.2",
-    "ป.3",
-    "ป.4",
-    "ป.5",
-    "ป.6",
-    ...secondary,
-  ];
+  const lowerLevels = [];
+  if (isEarlyChildhoodEnabled) {
+    lowerLevels.push("เตรียมอนุบาล", "อนุบาล 1", "อนุบาล 2");
+  }
+
+  if (isPrimaryEnabled) {
+    lowerLevels.push("ป.1", "ป.2", "ป.3", "ป.4", "ป.5", "ป.6");
+  }
+
+  return [...lowerLevels, ...secondary];
 };
 
 export const toVisibleSortedGrades = (grades) => {

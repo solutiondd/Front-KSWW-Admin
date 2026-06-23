@@ -20,6 +20,7 @@ const AcademicCalendar = () => import("../views/Admin/Academiccalendar.vue");
 const CheckName = () => import("../views/Admin/CheckName.vue");
 const Leave = () => import("../views/Admin/Leave.vue");
 const UniformInspection = () => import("../views/Admin/UniformInspection.vue");
+const AllowanceSetting = () => import("../views/Admin/AllowanceSetting.vue");
 
 const LeaveReport = () => import("../views/Admin/report/LeaveReq.vue");
 const AtRisk = () => import("../views/Admin/report/AtRisk.vue");
@@ -168,6 +169,11 @@ const routes = [
         path: "report/uniform-inspection",
         name: "UniformInspectionReport",
         component: UniformInspectionReport,
+      },
+      {
+        path: "allowance-setting",
+        name: "AllowanceSetting",
+        component: AllowanceSetting,
       },
     ],
   },

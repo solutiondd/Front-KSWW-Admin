@@ -41,6 +41,8 @@
                         <option value="Aifacescan">AI Face CC</option>
                         <option value="intfacecam">Int Face Cam</option>
                         <option value="hikfacescan">Hik Face Scan</option>
+                        <option value="qsdmask_facescan">QSDMASK Face Scan</option>
+                        <option value="megapixel_facescan">MEGAPIXEL Face Scan</option>
                     </select>
                 </div>
 
@@ -95,6 +97,25 @@
                 </div>
 
                 <div class="form-control">
+                    <label class="label">
+                        <span class="label-text" :class="{'text-error': macError}">MAC Address</span>
+                        <span class="label-text-alt text-base-content/60">(ไม่บังคับ)</span>
+                    </label>
+                    <input 
+                        v-model="formData.mac" 
+                        type="text" 
+                        placeholder="เช่น 00:15:18:23:59:90 หรือ 00-15-18-23-59-90"
+                        class="input input-bordered w-full" 
+                        :class="{'input-error text-error': macError}"
+                        @input="validateMac"
+                        @blur="validateMac"
+                    />
+                    <label v-if="macError" class="label">
+                        <span class="label-text-alt text-error">รูปแบบ MAC Address ไม่ถูกต้อง (เช่น 00:15:18:23:59:90)</span>
+                    </label>
+                </div>
+
+                <div class="form-control">
                     <label class="label cursor-pointer justify-start gap-3">
                         <input v-model="formData.use_attendance_time" type="checkbox" class="toggle toggle-primary" />
                         <span class="label-text">เปิดใช้งานช่วงเวลาบันทึกเข้าเรียน</span>
@@ -146,6 +167,7 @@ import featureFlags from '../../config/featureFlags.js'
 const createModal = ref(null)
 const emit = defineEmits(['success'])
 const showDevicePassword = ref(false)
+const macError = ref(false)
 
 const formData = ref({
     serial_number: '',
@@ -157,8 +179,21 @@ const formData = ref({
     usecase: '',
     attendance_start_time: '',
     attendance_end_time: '',
-    use_attendance_time: false
+    use_attendance_time: false,
+    mac: '',
 })
+
+const validateMac = () => {
+    const macValue = formData.value.mac ? formData.value.mac.trim() : ''
+    
+    if (!macValue) {
+        macError.value = false
+        return
+    }
+
+    const macPattern = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/
+    macError.value = !macPattern.test(macValue)
+}
 
 const encodeDeviceKey = (username, password) => {
     if (!username && !password) return ''
@@ -187,6 +222,7 @@ const closeModal = () => {
 
 const resetForm = () => {
     showDevicePassword.value = false
+    macError.value = false
     formData.value = {
         serial_number: '',
         location: '',
@@ -197,15 +233,19 @@ const resetForm = () => {
         usecase: '',
         attendance_start_time: '',
         attendance_end_time: '',
-        use_attendance_time: false
+        use_attendance_time: false,
+        mac: '',
     }
 }
 
 const handleSubmit = () => {
+    validateMac()
+    if (macError.value) return
     const { device_username, device_password, usecase, ...payload } = formData.value
     if (usecase) payload.usecase = usecase
     const encodedDeviceKey = encodeDeviceKey(device_username, device_password)
     if (encodedDeviceKey) payload.device_key = encodedDeviceKey
+    payload.mac = formData.value.mac ? formData.value.mac.trim() : ''
     emit('success', payload)
 }
 

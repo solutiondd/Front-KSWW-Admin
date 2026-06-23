@@ -15,7 +15,8 @@
                             <div class="avatar">
                                 <div class="w-10 h-10 rounded-full">
                                     <img v-if="student.picture" :src="student.picture" :alt="student.name"
-                                        class="w-full h-full object-cover" />
+                                        class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                        @click.stop="openPictureModal(student.picture)" />
                                     <div v-else
                                         class="w-full h-full bg-secondary text-secondary-content flex items-center justify-center">
                                         <span class="text-sm font-semibold">{{ getInitials(student.name) }}</span>
@@ -52,7 +53,7 @@
                                             class="inline-block w-3 h-3 rounded-full"></span>
                                         <span class="text-xs">{{ student.has_password ? 'มีรหัสผ่าน' :
                                             'ยังไม่มีรหัสผ่าน'
-                                        }}</span>
+                                            }}</span>
                                     </template>
                                 </div>
                                 <span v-if="hasGuardian(student)" class="inline-flex items-center shrink-0">
@@ -178,11 +179,13 @@
                                     <div class="avatar">
                                         <div class="w-10 h-10 rounded-full">
                                             <img v-if="student.picture" :src="student.picture" :alt="student.name"
-                                                class="w-full h-full object-cover" @error="student.picture = null" />
+                                                class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                @click.stop="openPictureModal(student.picture)"
+                                                @error="student.picture = null" />
                                             <div v-else
                                                 class="w-full h-full bg-secondary text-secondary-content flex items-center justify-center">
                                                 <span class="text-sm font-semibold">{{ getInitials(student.name)
-                                                }}</span>
+                                                    }}</span>
                                                 <svg class="ml-1 w-4 h-4 text-base-content/50" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -317,6 +320,19 @@
                 </table>
             </div>
         </div>
+        <dialog ref="pictureModal" class="modal">
+            <div class="modal-box max-w-xl w-full p-0">
+                <form method="dialog">
+                    <button
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-white/80 hover:bg-white">✕</button>
+                </form>
+                <img v-if="pictureModalSrc" :src="pictureModalSrc" alt="profile"
+                    class="w-full h-auto max-h-[80vh] object-contain" />
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
     </div>
 </template>
 
@@ -329,6 +345,13 @@ const auth = useAuthStore()
 const openGuardianKey = ref(null)
 const guardianDeletingKey = ref(null)
 const studentService = new StudentService()
+const pictureModal = ref(null)
+const pictureModalSrc = ref(null)
+
+const openPictureModal = (src) => {
+    pictureModalSrc.value = src
+    pictureModal.value?.showModal()
+}
 const props = defineProps({
     students: {
         type: Array,

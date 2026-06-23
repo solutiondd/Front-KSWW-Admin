@@ -61,13 +61,13 @@
                                 <td class="text-center">
                                     <span v-if="getEntry(item.late_dates[0]) !== '-'"
                                         class="badge badge-info badge-md px-4 py-2">{{
-                                            getEntry(item.late_dates[0]) }}</span>
+                                            getEntry(item.late_dates[0]).substring(0, 5) }}</span>
                                     <span v-else class="badge badge-error badge-md px-4 py-2">-</span>
                                 </td>
                                 <td class="text-center">
                                     <span v-if="getEntry(item.late_dates[0]) !== '-'"
                                         class="badge badge-warning badge-md px-4 py-2">{{
-                                            computeLateTime(getEntry(item.late_dates[0])) }}</span>
+                                            computeLateTime(getEntry(item.late_dates[0]), item.role) }}</span>
                                     <span v-else class="badge badge-warning badge-md px-4 py-2">-</span>
                                 </td>
                                 <td class="text-center">
@@ -90,7 +90,7 @@
                                                     <div
                                                         class="bg-neutral text-neutral-content w-14 h-14 rounded flex items-center justify-center">
                                                         <span class="text-base font-bold">{{ getInitials(item.name)
-                                                            }}</span>
+                                                        }}</span>
                                                     </div>
                                                 </div>
                                             </template>
@@ -110,13 +110,13 @@
                                     <td class="text-center">
                                         <span v-if="getEntry(late) !== '-'"
                                             class="badge badge-info badge-md px-4 py-2">{{
-                                                getEntry(late) }}</span>
+                                                getEntry(late).substring(0, 5) }}</span>
                                         <span v-else class="badge badge-error badge-md px-4 py-2">-</span>
                                     </td>
                                     <td class="text-center">
                                         <span v-if="getEntry(late) !== '-'"
                                             class="badge badge-warning badge-md px-4 py-2">{{
-                                                computeLateTime(getEntry(late)) }}</span>
+                                                computeLateTime(getEntry(late), item.role) }}</span>
                                         <span v-else class="badge badge-warning badge-md px-4 py-2">-</span>
                                     </td>
                                     <td class="text-center">
@@ -138,7 +138,7 @@
                                                         <div
                                                             class="bg-neutral text-neutral-content w-14 h-14 rounded flex items-center justify-center">
                                                             <span class="text-base font-bold">{{ getInitials(item.name)
-                                                            }}</span>
+                                                                }}</span>
                                                         </div>
                                                     </div>
                                                 </template>
@@ -225,13 +225,13 @@
                             <div class="flex-1 text-center">
                                 <span class="text-xs text-base-content/60 block">เข้า</span>
                                 <span v-if="getEntry(late) !== '-'" class="badge badge-success badge-sm">{{
-                                    getEntry(late) }}</span>
+                                    getEntry(late).substring(0, 5) }}</span>
                                 <span v-else class="badge badge-error badge-sm">ไม่มีเข้า</span>
                             </div>
                             <div class="flex-1 text-center">
                                 <span class="text-xs text-base-content/60 block">เวลาสาย</span>
                                 <span class="badge badge-warning badge-sm" v-if="getEntry(late) !== '-'">{{
-                                    computeLateTime(getEntry(late)) }}</span>
+                                    computeLateTime(getEntry(late), item.role) }}</span>
                                 <span class="badge badge-error badge-sm" v-else>-</span>
                             </div>
                         </div>
@@ -359,7 +359,7 @@ async function exportLateToExcel() {
                             : (item.department || '-'),
                         'วันที่': formatDate(late.date),
                         'เวลาเข้า': getFirstTime(late),
-                        'มาสาย(ชม.)': computeLateTime(getFirstTimeFull(late)),
+                        'มาสาย(ชม.)': computeLateTime(getFirstTimeFull(late), item.role),
                     });
                 });
             } else {
@@ -463,6 +463,10 @@ const props = defineProps({
     summaryTextColor: {
         type: String,
         default: 'text-white'
+    },
+    allowanceRules: {
+        type: Array,
+        default: () => []
     }
 })
 
@@ -526,7 +530,8 @@ function getEntry(late) {
     if (!late || !late.timeStamps || late.timeStamps.length === 0) return '-';
     const first = late.timeStamps[0];
     if (!first || !first.timeStamp) return '-';
-    return first.timeStamp.split(' ')[1].substring(0, 5);
+
+    return first.timeStamp.split(' ')[1].substring(0, 8);
 }
 
 function hasSimilarity(value) {
@@ -541,18 +546,49 @@ function viewImage(image, isProfile = false) {
     imageModal.value?.showModal()
 }
 
-const computeLateTime = (timeStr) => {
+const computeLateTime = (timeStr, role) => {
     if (!timeStr || timeStr === '-' || timeStr === 'ไม่มีเข้า') return '-';
+
+    let h1 = 8;
+    let m1 = 1;
+    let s1 = 0;
+
+    if (props.allowanceRules && props.allowanceRules.length > 0) {
+        const currentRule = props.allowanceRules.find(r => {
+            const targetRole = role || (props.grade ? 'student' : 'teacher');
+            return r.role === targetRole && r.enabled;
+        });
+        if (currentRule && currentRule.allowance_time) {
+            const [allowH, allowM, allowS] = currentRule.allowance_time.split(':').map(Number);
+            h1 = allowH;
+            m1 = allowM;
+            s1 = allowS || 0;
+        }
+    }
+
     const [h2, m2, s2] = timeStr.split(':').map(Number);
-    const h1 = 8, m1 = 1;
-    const t1 = h1 * 60 + m1;
-    const t2 = h2 * 60 + m2;
-    if (t2 < t1) return '-';
-    let minsLate = (t2 - t1) + 1;
-    const hours = Math.floor(minsLate / 60);
-    const mins = minsLate % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
-}
+
+    const totalSeconds1 = (h1 * 3600) + (m1 * 60) + s1;
+    const totalSeconds2 = (h2 * 3600) + (m2 * 60) + (s2 || 0);
+
+    if (totalSeconds2 <= totalSeconds1) return 'ไม่สาย';
+
+    const diffSeconds = totalSeconds2 - totalSeconds1;
+
+    if (h2 === h1 && m2 === m1) {
+        const displaySec = String(s2 || 0).padStart(2, '0');
+        return `00:00:${displaySec}`;
+    }
+
+    const diffMinutes = Math.floor(diffSeconds / 60);
+    const h = Math.floor(diffMinutes / 60);
+    const m = diffMinutes % 60;
+
+    const displayHour = String(h).padStart(2, '0');
+    const displayMin = String(m).padStart(2, '0');
+
+    return `${displayHour}:${displayMin}`;
+};
 </script>
 
 <style scoped>

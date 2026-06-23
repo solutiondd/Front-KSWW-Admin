@@ -40,9 +40,16 @@
                 <h3 class="font-bold text-lg mb-4">รายการมาสาย{{ lateRole === 'teacher' ? 'ครู' : 'นักเรียน' }} วันที่
                     {{ displayDate }}</h3>
 
-                <LateTable :data="lateData" :pagination="latePagination"
-                    :filters="{ start: (selectedDate.value || '').toString(), end: (selectedDate.value || '').toString(), role: lateRole }"
-                    :hide-export="true" @page-change="handleLatePageChange" summaryTextColor="text-black" />
+                <div v-if="lateRole === 'student'">
+                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules"
+                        grade="student" :filters="{ start: selectedDate, end: selectedDate, role: 'student' }"
+                        :hide-export="true" @page-change="handleLatePageChange" summaryTextColor="text-black" />
+                </div>
+                <div v-else>
+                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules"
+                        :filters="{ start: selectedDate, end: selectedDate, role: 'teacher' }" :hide-export="true"
+                        @page-change="handleLatePageChange" summaryTextColor="text-black" />
+                </div>
             </div>
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
@@ -333,11 +340,13 @@ import AttendanceDetail from '../Report/AttendanceDetail.vue'
 import Attendance from './Attendance.vue'
 import { useAuthStore } from '../../stores/auth'
 import { toVisibleSortedGrades } from '../../utils/gradeSystem'
+import { AllowanceService } from '../../api/allowance'
 
 const auth = useAuthStore()
 const emit = defineEmits(['dateChange'])
 const studentCardRef = ref(null)
 const selectedDate = ref(new Date().toISOString().split('T')[0])
+const allowanceRules = ref([]);
 
 function getDefaultDate() {
     const now = new Date()
@@ -897,6 +906,18 @@ function resetLatePage() {
     latePage.value = 1;
 }
 
+const fetchAllowanceSettings = async () => {
+    try {
+        const service = new AllowanceService();
+        const res = await service.getAllowance();
+        if (res && res.data && res.data.rules) {
+            allowanceRules.value = res.data.rules;
+        }
+    } catch (error) {
+        console.error("Error fetching allowance settings in dashboard:", error);
+    }
+};
+
 onMounted(() => {
     showStudentStat.value = false
     showTeacherStat.value = false
@@ -918,6 +939,7 @@ onMounted(() => {
     setTimeout(() => {
         showTeacherAbsentStat.value = true
     }, 100)
+    fetchAllowanceSettings();
     fetchDaily()
     fetchClassrooms()
     if (studentIconRef.value) {

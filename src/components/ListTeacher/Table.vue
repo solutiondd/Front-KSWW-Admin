@@ -16,7 +16,9 @@
                             <div class="avatar">
                                 <div class="w-10 h-10 rounded-full">
                                     <img v-if="teacher.picture" :src="teacher.picture" :alt="teacher.name"
-                                        class="w-full h-full object-cover" @error="teacher.picture = null" />
+                                        class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                        @click.stop="openPictureModal(teacher.picture)"
+                                        @error="teacher.picture = null" />
                                     <div v-else
                                         class="w-full h-full bg-primary text-primary-content flex items-center justify-center">
                                         <span class="text-sm font-semibold">{{ getInitials(teacher.name) }}</span>
@@ -54,7 +56,7 @@
                                         class="inline-block w-3 h-3 rounded-full"></span>
                                     <span class="ml-2 text-xs">{{ teacher.has_password ? 'มีรหัสผ่าน' :
                                         'ยังไม่มีรหัสผ่าน'
-                                        }}</span>
+                                    }}</span>
                                 </template>
                             </div>
                             <div v-if="auth.user?.role !== 'teacher'"
@@ -95,7 +97,7 @@
                 <table class="table table-zebra table-xs sm:table-sm md:table-md">
                     <thead>
                         <tr>
-                            <th class="bg-primary text-primary-content hidden lg:table-cell">#</th>
+                            <th class="bg-primary text-primary-content hidden xl:table-cell">#</th>
                             <th class="bg-primary text-primary-content">ชื่อ-นามสกุล</th>
                             <th class="bg-primary text-primary-content hidden sm:table-cell">รหัสบุคลากร</th>
                             <th class="bg-primary text-primary-content hidden md:table-cell">
@@ -160,17 +162,19 @@
                             </td>
                         </tr>
                         <tr v-else v-for="(teacher, index) in teachers" :key="teacher.id" class="hover">
-                            <td class="hidden lg:table-cell">{{ getRowNumber(index) }}</td>
+                            <td class="hidden xl:table-cell">{{ getRowNumber(index) }}</td>
                             <td>
                                 <div class="flex items-center gap-3">
                                     <div class="avatar">
                                         <div class="w-10 h-10 rounded-full">
                                             <img v-if="teacher.picture" :src="teacher.picture" :alt="teacher.name"
-                                                class="w-full h-full object-cover" @error="teacher.picture = null" />
+                                                class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                                @click.stop="openPictureModal(teacher.picture)"
+                                                @error="teacher.picture = null" />
                                             <div v-else
                                                 class="w-full h-full bg-primary text-primary-content flex items-center justify-center">
                                                 <span class="text-sm font-semibold">{{ getInitials(teacher.name)
-                                                }}</span>
+                                                    }}</span>
                                                 <svg class="ml-1 w-4 h-4 text-base-content/50" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
@@ -204,8 +208,8 @@
                             </td>
                             <td v-if="auth.user?.role !== 'teacher'">
                                 <div class="flex gap-1 lg:gap-2 justify-center">
-                                    <button class="btn btn-xs lg:btn-sm btn-info btn-outline" @click="emit('detail', teacher)"
-                                        title="ดูรายละเอียด">
+                                    <button class="btn btn-xs lg:btn-sm btn-info btn-outline"
+                                        @click="emit('detail', teacher)" title="ดูรายละเอียด">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -237,6 +241,19 @@
                 </table>
             </div>
         </div>
+        <dialog ref="pictureModal" class="modal">
+            <div class="modal-box max-w-xl w-full p-0">
+                <form method="dialog">
+                    <button
+                        class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-white/80 hover:bg-white">✕</button>
+                </form>
+                <img v-if="pictureModalSrc" :src="pictureModalSrc" alt="profile"
+                    class="w-full h-auto max-h-[80vh] object-contain" />
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>close</button>
+            </form>
+        </dialog>
     </div>
 </template>
 
@@ -284,6 +301,13 @@ const props = defineProps({
 
 const localDepartmentFilter = ref(props.departmentFilter)
 const localPositionFilter = ref(props.positionFilter)
+const pictureModal = ref(null)
+const pictureModalSrc = ref(null)
+
+const openPictureModal = (src) => {
+    pictureModalSrc.value = src
+    pictureModal.value?.showModal()
+}
 
 watch(() => props.departmentFilter, (newVal) => {
     localDepartmentFilter.value = newVal

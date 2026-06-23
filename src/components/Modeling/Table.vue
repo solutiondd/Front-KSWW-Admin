@@ -10,7 +10,7 @@
                     <th class="text-center">ลำดับ</th>
                     <th>ชื่อ-สกุล</th>
                     <th class="text-center">รหัสนักเรียน/รหัสอาจารย์</th>
-                    <th class="text-center">ตำแหน่ง</th>
+                    <th class="text-center max-[1307px]:hidden">ตำแหน่ง</th>
                     <th class="text-center">ห้องเรียน/แผนก</th>
                     <th class="text-center">สถานะการเชื่อมต่อ</th>
                     <th v-if="auth.user?.role !== 'viewer'" class="text-center">จัดการ</th>
@@ -34,7 +34,8 @@
                             <div class="avatar">
                                 <div class="w-10 h-10 rounded-full">
                                     <img v-if="item.picture" :src="getPictureUrl(item.picture)" :alt="item.name"
-                                        class="w-full h-full object-cover" @error="item.picture = null" />
+                                        class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                        @click.stop="openPictureModal(item.picture)" @error="item.picture = null" />
                                     <div v-else
                                         class="w-full h-full bg-primary text-primary-content flex items-center justify-center">
                                         <span class="text-sm font-semibold">{{ getInitials(item.name) }}</span>
@@ -45,7 +46,7 @@
                         </div>
                     </td>
                     <td class="text-center">{{ item.userid }}</td>
-                    <td class="text-center">{{ item.position }}</td>
+                    <td class="text-center max-[1307px]:hidden">{{ item.position }}</td>
                     <td class="text-center">
                         <span v-if="item.role === 'student'">
                             {{ formatGradeClassroomDisplay(item.grade, item.classroom) }}
@@ -59,7 +60,8 @@
                             class="text-center text-base-content/60">
                             ยังไม่ได้เชื่อมต่ออุปกรณ์
                         </div>
-                        <div v-else class="flex items-center justify-center gap-2">
+                        <div v-else
+                            class="flex items-center justify-center gap-2 max-[1307px]:grid max-[1307px]:grid-cols-4 max-[1307px]:justify-items-center max-[1307px]:gap-1">
                             <div v-for="(model, idx) in item.modeling" :key="idx" class="tooltip tooltip-top"
                                 :data-tip="`${model.device.location} - ${statusLabel(model.status)}${model.result_msg ? ' (' + model.result_msg + ')' : ''}`">
                                 <div :class="[
@@ -103,7 +105,8 @@
                         <div class="avatar">
                             <div class="w-10 h-10 rounded-full">
                                 <img v-if="item.picture" :src="getPictureUrl(item.picture)" :alt="item.name"
-                                    class="w-full h-full object-cover" @error="item.picture = null" />
+                                    class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                    @click.stop="openPictureModal(item.picture)" @error="item.picture = null" />
                                 <div v-else
                                     class="w-full h-full bg-primary text-primary-content flex items-center justify-center">
                                     <span class="text-sm font-semibold">{{ getInitials(item.name) }}</span>
@@ -194,6 +197,19 @@
         <UpdateTeacher ref="updateTeacherRef" :departments="departments" :positions="positions"
             @success="() => emit('updated', { refresh: true, key: Math.random() })" />
     </div>
+    <dialog ref="pictureModal" class="modal">
+        <div class="modal-box max-w-xl w-full p-0">
+            <form method="dialog">
+                <button
+                    class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-white/80 hover:bg-white">✕</button>
+            </form>
+            <img v-if="pictureModalSrc" :src="pictureModalSrc" alt="profile"
+                class="w-full h-auto max-h-[80vh] object-contain" />
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>close</button>
+        </form>
+    </dialog>
 </template>
 
 <script setup>
@@ -383,6 +399,13 @@ const getInitials = (name) => {
     return parts[0][0] || '?';
 };
 const detailItem = ref(null);
+const pictureModal = ref(null);
+const pictureModalSrc = ref(null);
+
+const openPictureModal = (pic) => {
+    pictureModalSrc.value = getPictureUrl(pic);
+    pictureModal.value?.showModal();
+};
 </script>
 
 <style scoped></style>

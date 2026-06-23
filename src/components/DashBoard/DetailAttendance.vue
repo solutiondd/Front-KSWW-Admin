@@ -107,7 +107,12 @@ const formatDate = (dateStr) => {
 const formatTime = (timestamp) => {
     if (!timestamp) return '-'
     const parts = timestamp.split(' ')
-    return parts.length > 1 ? parts[1] : timestamp
+    const timePart = parts.length > 1 ? parts[1] : timestamp
+    const [hour, minute, secondWithFraction] = timePart.split(':')
+    if (hour === undefined || minute === undefined) return timePart
+    if (secondWithFraction === undefined) return `${hour}:${minute}`
+    const second = secondWithFraction.split('.')[0]
+    return `${hour}:${minute}:${second}`
 }
 
 const hasSimilarity = (value) => {

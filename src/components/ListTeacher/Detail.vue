@@ -6,7 +6,8 @@
                 <div class="avatar">
                     <div class="w-16 h-16 rounded-full">
                         <img v-if="teacher.picture" :src="getPictureUrl(teacher.picture)" :alt="teacher.name"
-                            class="w-full h-full object-cover" />
+                            class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            @click="openPictureModal(teacher.picture)" />
                         <div v-else
                             class="w-full h-full bg-primary text-primary-content flex items-center justify-center">
                             <span class="text-lg font-semibold">{{ getInitials(teacher.name) }}</span>
@@ -80,6 +81,19 @@
             </div>
             <AttendanceInfo ref="attendanceInfoRef" :user="teacher" :attendance="selectedAttendanceInfo"
                 type="teacher" />
+            <dialog ref="pictureModal" class="modal">
+                <div class="modal-box max-w-xl w-full p-0">
+                    <form method="dialog">
+                        <button
+                            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-white/80 hover:bg-white">✕</button>
+                    </form>
+                    <img v-if="pictureModalSrc" :src="pictureModalSrc" :alt="teacher.name"
+                        class="w-full h-auto max-h-[80vh] object-contain" />
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
         </div>
     </div>
 </template>
@@ -119,6 +133,13 @@ const activities = ref([])
 const loading = ref(false)
 const attendanceInfoRef = ref(null)
 const selectedAttendanceInfo = ref(null)
+const pictureModal = ref(null)
+const pictureModalSrc = ref(null)
+
+const openPictureModal = (pic) => {
+    pictureModalSrc.value = getPictureUrl(pic)
+    pictureModal.value?.showModal()
+}
 const academicCalendarService = new AcademicCalendarService()
 const leaveService = new LeaveService()
 const activityService = new ActivityService()

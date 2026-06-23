@@ -76,8 +76,14 @@
         </div>
 
         <div v-else>
-            <LateTable :data="paginatedData" :pagination="paginationData" :filters="filters" :grade="filters.grade"
-                :classroom="filters.classroom" @page-change="goToPage" />
+            <LateTable 
+            :data="paginatedData" 
+            :pagination="paginationData" 
+            :filters="filters" 
+            :grade="filters.grade"
+            :classroom="filters.classroom"
+            :allowance-rules="allowanceRules"
+            @page-change="goToPage" />
         </div>
     </div>
 </template>
@@ -88,6 +94,7 @@ import LateTable from '../../../components/Report/LateTable.vue'
 import reportApi from '../../../api/report.js'
 import { ClassRoomService } from '../../../api/class-room.js'
 import { mapGradeDisplay, toVisibleSortedGrades } from '../../../utils/gradeSystem'
+import { AllowanceService } from '../../../api/allowance';
 
 const residentRole = localStorage.getItem('residentRole') || ''
 const teacherGrade = localStorage.getItem('grade') || ''
@@ -101,6 +108,20 @@ const allRooms = ref([])
 const loading = ref(false)
 const error = ref(null)
 const lateData = ref([])
+
+const allowanceRules = ref([]);
+
+const fetchAllowanceSettings = async () => {
+    try {
+        const service = new AllowanceService();
+        const res = await service.getAllowance();
+        if (res?.data?.rules) {
+            allowanceRules.value = res.data.rules;
+        }
+    } catch (error) {
+        console.error("Error fetching allowance in Late.vue:", error);
+    }
+};
 
 const filters = ref({
     role: 'student',
@@ -248,6 +269,7 @@ const goToPage = (page) => {
 }
 
 onMounted(async () => {
+    fetchAllowanceSettings();
     fetchData()
     try {
         const res = await classRoomService.getClassRooms()

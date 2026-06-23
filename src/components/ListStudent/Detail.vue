@@ -8,7 +8,8 @@
                 <div class="avatar">
                     <div class="w-16 h-16 rounded-full">
                         <img v-if="student.picture" :src="getPictureUrl(student.picture)" :alt="student.name"
-                            class="w-full h-full object-cover" />
+                            class="w-full h-full object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                            @click="openPictureModal(student.picture)" />
                         <div v-else
                             class="w-full h-full bg-secondary text-secondary-content flex items-center justify-center">
                             <span class="text-lg font-semibold">{{ getInitials(student.name) }}</span>
@@ -78,6 +79,19 @@
             </div>
             <AttendanceInfo ref="attendanceInfoRef" :user="student" :attendance="selectedAttendanceInfo"
                 type="student" />
+            <dialog ref="pictureModal" class="modal">
+                <div class="modal-box max-w-xl w-full p-0">
+                    <form method="dialog">
+                        <button
+                            class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2 z-10 bg-white/80 hover:bg-white">✕</button>
+                    </form>
+                    <img v-if="pictureModalSrc" :src="pictureModalSrc" :alt="student.name"
+                        class="w-full h-auto max-h-[80vh] object-contain" />
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>close</button>
+                </form>
+            </dialog>
             <div class="mt-4 text-xs grid grid-cols-7 gap-3 max-[650px]:grid-cols-3">
                 <div class="flex items-center gap-1"><span class="inline-block w-4 h-4 rounded-full bg-blue-500"></span>
                     มาเรียน</div>
@@ -150,6 +164,13 @@ const activities = ref([])
 const loading = ref(false)
 const attendanceInfoRef = ref(null)
 const selectedAttendanceInfo = ref(null)
+const pictureModal = ref(null)
+const pictureModalSrc = ref(null)
+
+const openPictureModal = (pic) => {
+    pictureModalSrc.value = getPictureUrl(pic)
+    pictureModal.value?.showModal()
+}
 const academicCalendarService = new AcademicCalendarService()
 const leaveService = new LeaveService()
 const activityService = new ActivityService()
@@ -375,13 +396,18 @@ const getPictureUrl = (pic) => {
 
 const goToConduct = () => {
     if (!canOpenConduct.value) return
-    const studentId = props.student?.id || props.student?._id
-    if (!studentId) return
+    const rawStudentId = props.student?._id || props.student?.id
+    const studentId = /^[a-fA-F0-9]{24}$/.test(String(rawStudentId || '')) ? String(rawStudentId) : ''
+    const userid = props.student?.userid ? String(props.student.userid) : ''
+    const name = props.student?.name ? String(props.student.name) : ''
+    if (!studentId && !userid && !name) return
     emit('close')
     router.push({
         name: 'Conduct',
         query: {
-            studentId: String(studentId),
+            ...(studentId ? { studentId: String(studentId) } : {}),
+            ...(userid ? { userid } : {}),
+            ...(name ? { name } : {}),
         },
     })
 }

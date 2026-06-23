@@ -50,7 +50,11 @@
                         <td>{{ item.name || '-' }}</td>
                         <td class="text-center">{{ formatClassroom(item) }}</td>
                         <td class="text-center">
-                            <span class="badge" :class="scoreBadgeClass(item.score)">{{ item.score ?? '-' }}</span>
+                            <button type="button" class="badge hover:opacity-90 cursor-pointer"
+                                :class="scoreBadgeClass(item.score)" @click="openConductByStudent(item)"
+                                :title="`จัดการคะแนนของ ${item.name || item.userid || 'นักเรียน'}`">
+                                {{ item.score ?? '-' }}
+                            </button>
                         </td>
                     </tr>
                 </tbody>
@@ -88,7 +92,11 @@
                         <p class="text-sm text-base-content/70">รหัส: {{ item.userid || '-' }}</p>
                     </div>
 
-                    <span class="badge" :class="scoreBadgeClass(item.score)">{{ item.score ?? '-' }}</span>
+                    <button type="button" class="badge hover:opacity-90 cursor-pointer"
+                        :class="scoreBadgeClass(item.score)" @click="openConductByStudent(item)"
+                        :title="`จัดการคะแนนของ ${item.name || item.userid || 'นักเรียน'}`">
+                        {{ item.score ?? '-' }}
+                    </button>
                 </div>
 
                 <div class="divider my-1"></div>
@@ -110,10 +118,12 @@
 
 <script setup>
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
 import reportApi from "../../api/report.js";
 import { formatGradeClassroomDisplay, mapGradeDisplay } from '../../utils/gradeSystem';
 
 const imgProfileBaseUrl = import.meta.env.VITE_IMG_PROFILE_URL;
+const router = useRouter();
 
 const riskStudents = ref([]);
 const loading = ref(false);
@@ -157,6 +167,24 @@ const scoreBadgeClass = (score) => {
     if (value >= 1 && value <= 20) return "bg-red-500 text-white border-red-600";
     if (value <= 0) return "bg-black text-white border-black";
     return "badge-ghost";
+};
+
+const openConductByStudent = (item) => {
+    if (!item) return;
+
+    const rawStudentId = item._id || item.id || "";
+    const studentId = /^[a-fA-F0-9]{24}$/.test(String(rawStudentId)) ? String(rawStudentId) : "";
+    const userid = item.userid ? String(item.userid) : "";
+    const name = item.name ? String(item.name) : "";
+
+    router.push({
+        name: "Conduct",
+        query: {
+            ...(studentId ? { studentId: String(studentId) } : {}),
+            ...(userid ? { userid } : {}),
+            ...(name ? { name } : {}),
+        },
+    });
 };
 
 onMounted(fetchRiskStudents);

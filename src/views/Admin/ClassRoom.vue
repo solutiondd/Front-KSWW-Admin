@@ -25,7 +25,8 @@
                             'btn btn-sm',
                             selectedGrade === grade.value ? 'btn-secondary' : 'btn-ghost'
                         ]">
-                        {{ grade.label }}
+                        <span class="xl:hidden">{{ grade.compactLabel }}</span>
+                        <span class="hidden xl:inline">{{ grade.fullLabel }}</span>
                     </button>
                 </div>
             </div>
@@ -55,7 +56,7 @@ import { ClassRoomService } from '../../api/class-room'
 import { TeacherService } from '../../api/teacher'
 import { useAuthStore } from '../../stores/auth'
 import featureFlags from '../../config/featureFlags'
-import { getConfiguredGrades, getGradeUiLabel, shouldIncludeGrade, toVisibleSortedGrades } from '../../utils/gradeSystem'
+import { getConfiguredGrades, getGradeCompactLabel, getGradeFullLabel, getGradeUiLabel, shouldIncludeGrade, toVisibleSortedGrades } from '../../utils/gradeSystem'
 const auth = useAuthStore()
 
 const classRoomService = new ClassRoomService()
@@ -76,7 +77,9 @@ const availableGrades = computed(() => {
     ])
     return grades.map(grade => ({
         value: grade,
-        label: getGradeUiLabel(grade)
+        label: getGradeUiLabel(grade),
+        compactLabel: getGradeCompactLabel(grade),
+        fullLabel: getGradeFullLabel(grade)
     }))
 })
 

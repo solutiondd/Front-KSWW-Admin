@@ -27,7 +27,7 @@
                         <p class="text-xs text-yellow-600 mb-1">{{ selectedItem.department ? 'แผนก' : 'ชั้นเรียน' }}</p>
                         <p class="font-semibold text-yellow-900">
                             {{ selectedItem.department || formatGradeClassroomDisplay(selectedItem.grade,
-                            selectedItem.classroom) }}
+                                selectedItem.classroom) }}
                         </p>
                     </div>
                 </div>
@@ -126,7 +126,13 @@ const formatDate = (dateStr) => {
 }
 
 const formatTime = (timestamp) => {
-    return timestamp.split(' ')[1] || timestamp
+    if (!timestamp) return '-'
+    const timePart = timestamp.split(' ')[1] || timestamp
+    const [hour, minute, secondWithFraction] = timePart.split(':')
+    if (hour === undefined || minute === undefined) return timePart
+    if (secondWithFraction === undefined) return `${hour}:${minute}`
+    const second = secondWithFraction.split('.')[0]
+    return `${hour}:${minute}:${second}`
 }
 
 const imageErrorHandler = (event, idx) => {

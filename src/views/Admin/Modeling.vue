@@ -79,6 +79,19 @@
                         <option v-for="dept in departments" :key="dept._id" :value="dept.name">{{ dept.name }}</option>
                     </select>
                 </div>
+
+                <div class="form-control">
+                    <label class="label py-1">
+                        <span class="label-text text-sm font-medium">แถวต่อหน้า</span>
+                    </label>
+                    <select v-model.number="filters.limit" @change="handleLimitChange"
+                        class="select select-bordered select-sm w-full">
+                        <option :value="10">10</option>
+                        <option :value="20">20</option>
+                        <option :value="50">50</option>
+                        <option :value="100">100</option>
+                    </select>
+                </div>
             </div>
 
             <div class="flex justify-end gap-2 mt-3">
@@ -247,6 +260,11 @@ const changePage = (page) => {
     }
 };
 
+const handleLimitChange = () => {
+    currentPage.value = 1;
+    fetchData();
+};
+
 const resetFilters = () => {
     filters.value = {
         role: "student",
@@ -255,6 +273,8 @@ const resetFilters = () => {
         userid: "",
         status: "all",
         limit: 10,
+        grade: "",
+        classroom: "",
     };
     currentPage.value = 1;
     fetchData();

@@ -18,6 +18,10 @@
                         <div class="font-semibold">{{ currentDevice.ipaddress || '-' }}</div>
                     </div>
                     <div class="bg-base-200 rounded-lg p-3">
+                        <div class="text-xs text-base-content/60">MAC Address</div>
+                        <div class="font-semibold">{{ currentDevice.mac || '-' }}</div>
+                    </div>
+                    <div class="bg-base-200 rounded-lg p-3">
                         <div class="text-xs text-base-content/60">สถานที่</div>
                         <div class="font-semibold">{{ currentDevice.location || '-' }}</div>
                     </div>
