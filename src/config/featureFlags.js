@@ -34,6 +34,6 @@ export default {
   menu: {
     enableUniformInspection: true, // เมนูตรวจเครื่องแบบ
     enableReportUniformInspection: true, // เมนูรายงานตรวจระเบียบ
-    enableAllowanceSetting: true, // เมนูตั้งค่าสาย
+    enableAllowanceSetting: false, // เมนูตั้งค่าสาย
   },
 };
