@@ -114,7 +114,7 @@
             </div>
         </div>
 
-        <StudentTable :students="filteredStudents" :loading="loading" :currentPage="currentPage"
+        <StudentTable class="relative z-10" :students="filteredStudents" :loading="loading" :currentPage="currentPage"
             :itemsPerPage="itemsPerPage.value" @edit="openUpdateModal" @delete="openDeleteModal"
             @reset="openRePasswordModal" @detail="openDetailModal" @refresh="fetchStudents" />
         <CreateModal ref="createModalRef" :classrooms="classrooms" @success="handleCreateSuccess" />

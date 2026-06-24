@@ -146,7 +146,7 @@
                     </div>
                 </div>
             </div>
-            <div class="hidden md:block overflow-x-auto">
+            <div class="hidden md:block">
                 <table class="table table-zebra table-xs sm:table-sm md:table-md student-table">
                     <thead>
                         <tr>
