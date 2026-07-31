@@ -102,4 +102,23 @@ export class UniformInspectionService {
       throw error;
     }
   }
+
+  async deleteUniformInspection(id) {
+    try {
+      let config = {
+        method: "delete",
+        maxBodyLength: Infinity,
+        url: `${this.baseUrl}uniform-inspections/${id}`,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      };
+
+      const response = await axios.request(config);
+      return response.data;
+    } catch (error) {
+      console.error("Delete uniform inspection error:", error);
+      throw error;
+    }
+  }
 }

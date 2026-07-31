@@ -27,7 +27,7 @@
                         <img v-if="item.imageUrl" :src="`${imgBaseUrl}${item.imageUrl}`" alt="snapshot"
                             class="w-16 h-16 object-cover inline-block cursor-pointer rounded"
                             @click="viewImage(item.imageUrl)" />
-                        <div v-else class="w-16 h-16 bg-base-200 inline-block rounded flex items-center justify-center">
+                        <div v-else class="w-16 h-16 bg-base-200 inline-block rounded items-center justify-center">
                             <svg class="w-8 h-8 text-base-content/50" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

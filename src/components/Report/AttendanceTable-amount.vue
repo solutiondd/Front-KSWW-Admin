@@ -19,6 +19,7 @@
             <table class="table w-full">
                 <thead>
                     <tr class="bg-primary text-primary-content">
+                        <th class="w-12 text-center">#</th>
                         <th class="text-center">รหัส</th>
                         <th class="text-center">โปรไฟล์</th>
                         <th>ชื่อ - นามสกุล</th>
@@ -34,11 +35,14 @@
                 </thead>
                 <tbody>
                     <tr v-if="data.length === 0">
-                        <td colspan="8" class="text-center py-8 text-base-content/60">
+                        <td colspan="9" class="text-center py-8 text-base-content/60">
                             ไม่พบข้อมูล
                         </td>
                     </tr>
-                    <tr v-for="item in data" :key="item._id">
+                    <tr v-for="(item, index) in data" :key="item._id">
+                        <td class="text-center">
+                            {{ ((pagination?.page || 1) - 1) * (pagination?.limit || 10) + index + 1 }}
+                        </td>
                         <td class="text-center">{{ item.userid }}</td>
                         <td class="text-center">
                             <div v-if="item.picture" class="avatar inline-flex">

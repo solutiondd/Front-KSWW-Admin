@@ -15,7 +15,7 @@
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">รายการเข้าเรียน{{ attendanceRole === 'teacher' ? 'ครู' : 'นักเรียน'
-                }} วันที่ {{ displayDate }}</h3>
+                    }} วันที่ {{ displayDate }}</h3>
                 <div v-if="attendanceRole === 'student'">
                     <Attendance :role="'student'" :date="selectedDate" v-if="residentRole !== 'teacher'" />
                     <Attendance :role="'student'" :date="selectedDate" v-else :fixed-grade="localGrade"
@@ -41,14 +41,14 @@
                     {{ displayDate }}</h3>
 
                 <div v-if="lateRole === 'student'">
-                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules"
+                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules" :timeSortOrder="lateTimeSortOrder"
                         grade="student" :filters="{ start: selectedDate, end: selectedDate, role: 'student' }"
-                        :hide-export="true" @page-change="handleLatePageChange" summaryTextColor="text-black" />
+                        :hide-export="true" @page-change="handleLatePageChange" @toggle-time-sort="handleToggleLateTimeSort" summaryTextColor="text-black" />
                 </div>
                 <div v-else>
-                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules"
+                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules" :timeSortOrder="lateTimeSortOrder"
                         :filters="{ start: selectedDate, end: selectedDate, role: 'teacher' }" :hide-export="true"
-                        @page-change="handleLatePageChange" summaryTextColor="text-black" />
+                        @page-change="handleLatePageChange" @toggle-time-sort="handleToggleLateTimeSort" summaryTextColor="text-black" />
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
@@ -62,7 +62,7 @@
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">รายการที่ไม่ได้สแกน{{ missedRole === 'teacher' ? 'ครู' : 'นักเรียน'
-                }} วันที่
+                    }} วันที่
                     {{ displayDate }}</h3>
 
                 <MissedTable :data="missedData" :pagination="missedPagination" :hide-export="true"
@@ -75,14 +75,14 @@
         </dialog>
 
         <dialog ref="leaveModal" class="modal">
-            <div class="modal-box max-w-7xl">
+            <div class="modal-box max-w-7xl p-2 min-[481px]:p-6">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">รายการลา{{ leaveRole === 'teacher' ? 'ครู' : 'นักเรียน' }} วันที่
                     {{ displayDate }}</h3>
 
-                <LeaveRequest :filters="leaveFilters" />
+                <LeaveRequest :filters="leaveFilters" :hide-export="true" />
             </div>
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
@@ -90,7 +90,7 @@
         </dialog>
 
         <dialog ref="activityModal" class="modal">
-            <div class="modal-box max-w-7xl">
+            <div class="modal-box max-w-7xl p-2 min-[481px]:p-6">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
@@ -98,7 +98,7 @@
                     วันที่
                     {{ displayDate }}</h3>
 
-                <ActivityTable :filters="activityFilters" />
+                <ActivityTable :filters="activityFilters" :hide-export="true" />
             </div>
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
@@ -345,7 +345,7 @@ import { AllowanceService } from '../../api/allowance'
 const auth = useAuthStore()
 const emit = defineEmits(['dateChange'])
 const studentCardRef = ref(null)
-const selectedDate = ref(new Date().toISOString().split('T')[0])
+const selectedDate = ref(new Date().toLocaleDateString('sv-SE'))
 const allowanceRules = ref([]);
 
 function getDefaultDate() {
@@ -386,6 +386,7 @@ const lateLimit = ref(5)
 const lateTotalItems = ref(0)
 const lateTotalPages = ref(0)
 const lateRole = ref('student')
+const lateTimeSortOrder = ref('desc')
 const leaveRole = ref('student')
 const activityRole = ref('student')
 const missedData = ref([])
@@ -396,6 +397,7 @@ const missedTotalItems = ref(0)
 const missedTotalPages = ref(0)
 const missedRole = ref('student')
 const classrooms = ref([])
+// const progressData = ref([])
 const studentLeave = ref(0)
 const teacherLeave = ref(0)
 const studentActivity = ref(0)
@@ -513,8 +515,10 @@ async function fetchLeaveSummaryByDate() {
             )
         }
 
-        studentLeave.value = data.filter((item) => item.user_id?.role === 'student').length
-        teacherLeave.value = data.filter((item) => item.user_id?.role === 'teacher').length
+        const pendingLeaves = data.filter(item => !item.attendance || item.attendance.length === 0)
+
+        studentLeave.value = pendingLeaves.filter((item) => item.user_id?.role === 'student').length
+        teacherLeave.value = pendingLeaves.filter((item) => item.user_id?.role === 'teacher').length
     } catch (e) {
         console.error('Daily leave summary error', e)
         studentLeave.value = 0
@@ -542,8 +546,10 @@ async function fetchActivitySummaryByDate() {
             )
         }
 
-        studentActivity.value = data.filter((item) => item.user_id?.role === 'student').length
-        teacherActivity.value = data.filter((item) => item.user_id?.role === 'teacher').length
+        const pendingActivities = data.filter(item => !item.attendance || item.attendance.length === 0)
+
+        studentActivity.value = pendingActivities.filter((item) => item.user_id?.role === 'student').length
+        teacherActivity.value = pendingActivities.filter((item) => item.user_id?.role === 'teacher').length
     } catch (e) {
         console.error('Daily activity summary error', e)
         studentActivity.value = 0
@@ -679,16 +685,40 @@ async function showTeacherAttendanceTable() {
     }
 }
 
+function sortLateData(data, sortOrder = 'desc') {
+    if (!Array.isArray(data)) return []
+    return [...data].sort((a, b) => {
+        const getTimeInSeconds = (item) => {
+            const firstStamp = item.late_dates?.[0]?.timeStamps?.[0]?.timeStamp
+            if (!firstStamp) return 0
+            const timeStr = firstStamp.split(' ')[1] || '00:00:00'
+            const [h, m, s] = timeStr.split(':').map(Number)
+            return (h * 3600) + (m * 60) + (s || 0)
+        }
+        const timeA = getTimeInSeconds(a)
+        const timeB = getTimeInSeconds(b)
+        
+        return sortOrder === 'desc' ? timeB - timeA : timeA - timeB
+    })
+}
+
+function handleToggleLateTimeSort() {
+    lateTimeSortOrder.value = lateTimeSortOrder.value === 'desc' ? 'asc' : 'desc'
+    lateData.value = sortLateData(lateAllData.value, lateTimeSortOrder.value)
+}
+
 async function showStudentLateTable() {
     try {
         loading.value = true
         lateRole.value = 'student'
+        latePage.value = 1
+        
         let params = {
             start: selectedDate.value,
             end: selectedDate.value,
             role: 'student',
-            page: latePage.value,
-            limit: lateLimit.value
+            page: 1,
+            limit: 10000
         }
         if (residentRole.value === 'teacher') {
             params.grade = localGrade.value
@@ -696,17 +726,20 @@ async function showStudentLateTable() {
         }
         const res = await reportApi.getLateReport(params)
         if (res.message === 'Success' && res.data) {
-            lateAllData.value = res.data || [];
-            lateTotalItems.value = res.total_items || lateAllData.value.length;
-            lateTotalPages.value = res.total_pages || 1;
-            latePage.value = res.page || 1;
-            lateData.value = lateAllData.value;
-            lateModal.value?.showModal();
+            const sorted = sortLateData(res.data || [], lateTimeSortOrder.value)
+            lateAllData.value = sorted
+            
+            lateLimit.value = 5
+            lateTotalItems.value = sorted.length
+            lateTotalPages.value = Math.ceil(sorted.length / lateLimit.value) || 1
+            
+            lateData.value = sorted.slice(0, lateLimit.value)
+            lateModal.value?.showModal()
         }
     } catch (e) {
-        console.error('Error fetching student late data:', e);
+        console.error('Error fetching student late data:', e)
     } finally {
-        loading.value = false;
+        loading.value = false
     }
 }
 
@@ -714,29 +747,34 @@ async function showTeacherLateTable() {
     try {
         loading.value = true
         lateRole.value = 'teacher'
+        latePage.value = 1
+        
         let params = {
             start: selectedDate.value,
             end: selectedDate.value,
             role: 'teacher',
-            page: latePage.value,
-            limit: lateLimit.value
+            page: 1,
+            limit: 10000
         }
         if (residentRole.value === 'teacher') {
             params.name = profileName.value
         }
         const res = await reportApi.getLateReport(params)
         if (res.message === 'Success' && res.data) {
-            lateAllData.value = res.data || [];
-            lateTotalItems.value = res.total_items || lateAllData.value.length;
-            lateTotalPages.value = res.total_pages || 1;
-            latePage.value = res.page || 1;
-            lateData.value = lateAllData.value;
-            lateModal.value?.showModal();
+            const sorted = sortLateData(res.data || [], lateTimeSortOrder.value)
+            lateAllData.value = sorted
+            
+            lateLimit.value = 5
+            lateTotalItems.value = sorted.length
+            lateTotalPages.value = Math.ceil(sorted.length / lateLimit.value) || 1
+            
+            lateData.value = sorted.slice(0, lateLimit.value)
+            lateModal.value?.showModal()
         }
     } catch (e) {
-        console.error('Error fetching teacher late data:', e);
+        console.error('Error fetching teacher late data:', e)
     } finally {
-        loading.value = false;
+        loading.value = false
     }
 }
 
@@ -822,71 +860,9 @@ function showTeacherActivityTable() {
 
 function handleLatePageChange(page) {
     if (page >= 1 && page <= lateTotalPages.value) {
-        latePage.value = page;
-        if (lateRole.value === 'student') {
-            showStudentLateTableWithPage(page);
-        } else {
-            showTeacherLateTableWithPage(page);
-        }
-    }
-
-    async function showStudentLateTableWithPage(page) {
-        try {
-            loading.value = true;
-            lateRole.value = 'student';
-            let params = {
-                start: selectedDate.value,
-                end: selectedDate.value,
-                role: 'student',
-                page: page,
-                limit: lateLimit.value
-            };
-            if (residentRole.value === 'teacher') {
-                params.grade = localGrade.value;
-                params.classroom = localClassroom.value;
-            }
-            const res = await reportApi.getLateReport(params);
-            if (res.message === 'Success' && res.data) {
-                lateAllData.value = res.data || [];
-                lateTotalItems.value = res.total_items || lateAllData.value.length;
-                lateTotalPages.value = res.total_pages || 1;
-                latePage.value = res.page || page;
-                lateData.value = lateAllData.value;
-            }
-        } catch (e) {
-            console.error('Error fetching student late data:', e);
-        } finally {
-            loading.value = false;
-        }
-    }
-
-    async function showTeacherLateTableWithPage(page) {
-        try {
-            loading.value = true;
-            lateRole.value = 'teacher';
-            let params = {
-                start: selectedDate.value,
-                end: selectedDate.value,
-                role: 'teacher',
-                page: page,
-                limit: lateLimit.value
-            };
-            if (residentRole.value === 'teacher') {
-                params.name = profileName.value;
-            }
-            const res = await reportApi.getLateReport(params);
-            if (res.message === 'Success' && res.data) {
-                lateAllData.value = res.data || [];
-                lateTotalItems.value = res.total_items || lateAllData.value.length;
-                lateTotalPages.value = res.total_pages || 1;
-                latePage.value = res.page || page;
-                lateData.value = lateAllData.value;
-            }
-        } catch (e) {
-            console.error('Error fetching teacher late data:', e);
-        } finally {
-            loading.value = false;
-        }
+        latePage.value = page
+        const start = (page - 1) * lateLimit.value
+        lateData.value = lateAllData.value.slice(start, start + lateLimit.value)
     }
 }
 
@@ -917,6 +893,20 @@ const fetchAllowanceSettings = async () => {
         console.error("Error fetching allowance settings in dashboard:", error);
     }
 };
+
+// async function fetchProgressData() {
+//     try {
+//         const res = await reportApi.getProgressReport({ date: selectedDate.value })
+//         if (res && res.message === 'Success') {
+//             progressData.value = res.data || []
+//         } else {
+//             progressData.value = []
+//         }
+//     } catch (e) {
+//         console.error('Error fetching progress report on dashboard:', e)
+//         progressData.value = []
+//     }
+// }
 
 onMounted(() => {
     showStudentStat.value = false
@@ -996,23 +986,23 @@ onMounted(() => {
         containerEl3.addEventListener('mouseleave', stopAnim3)
     }
 
-    if (studentLateIconRef.value) {
-        const animLate = lottie.loadAnimation({
-            container: studentLateIconRef.value,
-            renderer: 'svg',
-            loop: true,
-            autoplay: false,
-            path: new URL('../../assets/doodle-color-292-clock-time-hover-pinch.json', import.meta.url).href,
-        })
-        animLate.addEventListener('DOMLoaded', () => {
-            animLate.goToAndStop(0, true)
-        })
-        const containerLate = studentCardRef.value || studentLateStatRef.value || studentLateIconRef.value
-        const playLate = () => animLate.play()
-        const stopLate = () => animLate.stop()
-        containerLate.addEventListener('mouseenter', playLate)
-        containerLate.addEventListener('mouseleave', stopLate)
-    }
+    // if (studentLateIconRef.value) {
+    //     const animLate = lottie.loadAnimation({
+    //         container: studentLateIconRef.value,
+    //         renderer: 'svg',
+    //         loop: true,
+    //         autoplay: false,
+    //         path: new URL('../../assets/doodle-color-292-clock-time-hover-pinch.json', import.meta.url).href,
+    //     })
+    //     animLate.addEventListener('DOMLoaded', () => {
+    //         animLate.goToAndStop(0, true)
+    //     })
+    //     const containerLate = studentCardRef.value || studentLateStatRef.value || studentLateIconRef.value
+    //     const playLate = () => animLate.play()
+    //     const stopLate = () => animLate.stop()
+    //     containerLate.addEventListener('mouseenter', playLate)
+    //     containerLate.addEventListener('mouseleave', stopLate)
+    // }
 })
 </script>
 

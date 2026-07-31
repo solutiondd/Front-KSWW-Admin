@@ -387,19 +387,45 @@ async function handleImport() {
             let formData = {};
             if (existing && existing.message === 'Success' && existing.data && existing.data._id) {
                 const oldData = existing.data;
+                
+                let fallbackFirstName = oldData.first_name || '';
+                let fallbackLastName = oldData.last_name || '';
+
+                if ((!fallbackFirstName || !fallbackLastName) && oldData.name) {
+                    let cleanName = oldData.name.replace(/^(เด็กชาย|เด็กหญิง|นาย|นางสาว|นาง)\s*/, '').trim();
+                    const nameParts = cleanName.split(/\s+/);
+                    
+                    fallbackFirstName = nameParts[0] || '';
+                    fallbackLastName = nameParts.slice(1).join(' ') || ''; 
+                }
+
                 formData = {
                     ...oldData,
                     userid: cleanedStudent.userid,
                 };
+                
                 delete formData.picture;
-                if (cleanedStudent.pre_name) formData.pre_name = cleanedStudent.pre_name;
-                if (cleanedStudent.first_name) formData.first_name = cleanedStudent.first_name;
-                if (cleanedStudent.last_name) formData.last_name = cleanedStudent.last_name;
-                if (cleanedStudent.grade) formData.grade = cleanedStudent.grade;
-                if (cleanedStudent.classroom) formData.classroom = cleanedStudent.classroom;
-                if (cleanedStudent.guardian_phone) formData.guardian_phone = cleanedStudent.guardian_phone;
-                formData.rfid = cleanedStudent.rfid;
-                if (resolvedImageFile) formData.picture = resolvedImageFile;
+
+                const isInvalidValue = (val) => {
+                    if (val === undefined || val === null) return true;
+                    const str = val.toString().trim();
+                    return str === '' || str === '-';
+                };
+
+                formData.pre_name = !isInvalidValue(cleanedStudent.pre_name) ? cleanedStudent.pre_name : (oldData.pre_name || '');
+                formData.first_name = !isInvalidValue(cleanedStudent.first_name) ? cleanedStudent.first_name : fallbackFirstName;
+                formData.last_name = !isInvalidValue(cleanedStudent.last_name) ? cleanedStudent.last_name : fallbackLastName;
+                
+                formData.grade = !isInvalidValue(cleanedStudent.grade) ? cleanedStudent.grade : oldData.grade;
+                formData.classroom = !isInvalidValue(cleanedStudent.classroom) ? cleanedStudent.classroom : oldData.classroom;
+                
+                formData.guardian_phone = cleanedStudent.guardian_phone !== '' ? cleanedStudent.guardian_phone : oldData.guardian_phone;
+                formData.rfid = cleanedStudent.rfid !== '' ? cleanedStudent.rfid : oldData.rfid;
+
+                if (resolvedImageFile) {
+                    formData.picture = resolvedImageFile;
+                }
+
                 try {
                     const response = await studentService.updateStudent(oldData._id, formData);
                     if (response.message === 'Success') {
@@ -407,7 +433,7 @@ async function handleImport() {
                     } else {
                         failedStudents.push({
                             userid: cleanedStudent.userid,
-                            name: `${cleanedStudent.pre_name}${cleanedStudent.first_name} ${cleanedStudent.last_name}`,
+                            name: `${formData.pre_name}${formData.first_name} ${formData.last_name}`,
                             reason: response.message || 'ไม่ทราบสาเหตุ'
                         });
                     }
@@ -415,8 +441,8 @@ async function handleImport() {
                     console.error(`Error updating student ${cleanedStudent.userid}:`, err);
                     failedStudents.push({
                         userid: cleanedStudent.userid,
-                        name: `${cleanedStudent.pre_name}${cleanedStudent.first_name} ${cleanedStudent.last_name}`,
-                        reason: err.response?.data?.error || err.message || 'ไม่ทราบสาเหตุ'
+                        name: `${formData.pre_name}${formData.first_name} ${formData.last_name}`,
+                        reason: err.response?.data?.error || err.response?.data?.message || err.message || 'ไม่ทราบสาเหตุ'
                     });
                 }
             } else {

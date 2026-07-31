@@ -50,6 +50,10 @@
                                         class="badge badge-success max-[444px]:badge-xs">
                                         ผ่าน
                                     </span>
+                                    <span v-else-if="localInspectionData[student._id]?.remark === 'ไม่มาตรวจ'"
+                                        class="badge badge-warning max-[444px]:badge-xs">
+                                        ไม่มาตรวจ
+                                    </span>
                                     <span v-else-if="localInspectionData[student._id]?.ispass === false"
                                         class="badge badge-error max-[444px]:badge-xs">
                                         ไม่ผ่าน
@@ -88,6 +92,18 @@
                                     <li>
                                         <button type="button" :disabled="autoSaving"
                                             class="max-[444px]:text-xs max-[444px]:px-2"
+                                            @click.stop.prevent="markAbsent(student._id)">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-warning"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            ไม่มาตรวจ
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
                                             @click.stop.prevent="clearStatus(student._id)">
                                             <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-warning"
                                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,6 +117,9 @@
                             </div>
                         </td>
                         <td class="text-xs sm:text-[10px] xl:text-sm max-[444px]:hidden">
+                            <div v-if="localInspectionData[student._id]?.remark === 'ไม่มาตรวจ'"
+                                class="text-warning font-medium">
+                            </div>
                             <div v-if="localInspectionData[student._id]?.ispass === false" class="text-error">
                                 <div v-if="(localInspectionData[student._id]?.issues || []).length" class="font-medium">
                                     {{ (localInspectionData[student._id]?.issues || []).join(', ') }}
@@ -180,6 +199,40 @@
                     </select>
                 </div>
 
+                <div class="mb-4 text-xs sm:text-sm">
+                    <div
+                        class="bg-gray-300 text-gray-800 font-medium px-3 py-2 flex justify-between items-center rounded-t">
+                        <span>ประวัติผิดระเบียบแต่งกาย</span>
+                        <span v-if="loadingHistory" class="loading loading-spinner loading-xs"></span>
+                        <span v-else>{{ studentFailHistory.length }} ครั้ง</span>
+                    </div>
+
+                    <div v-if="!loadingHistory" class="border border-t-0 border-gray-200">
+                        <template v-if="studentFailHistory.length > 0">
+                            <div v-for="(item, index) in paginatedFailHistory" :key="item._id || index"
+                                :class="['px-3 py-2 flex justify-between items-center gap-2', index % 2 === 1 ? 'bg-gray-200' : 'bg-gray-100']">
+                                <span class="truncate">
+                                    • {{ item.description || item.behavior }}
+                                </span>
+                                <span class="whitespace-nowrap font-normal text-gray-700">
+                                    {{ formatDateBE(item.created_at || item.createdAt) }}
+                                </span>
+                            </div>
+                        </template>
+
+                        <div v-else class="px-3 py-3 text-center text-gray-400 bg-gray-50">
+                            ยังไม่มีประวัติการทำผิดระเบียบ
+                        </div>
+                    </div>
+
+                    <div v-if="!loadingHistory && totalHistoryPages > 1" class="flex justify-center mt-2 gap-1">
+                        <button v-for="page in totalHistoryPages" :key="page" type="button" @click="historyPage = page"
+                            :class="['px-2.5 py-0.5 text-xs transition-colors', historyPage === page ? 'bg-gray-300 font-bold text-gray-900' : 'bg-gray-100 text-gray-600 hover:bg-gray-200']">
+                            {{ page }}
+                        </button>
+                    </div>
+                </div>
+
                 <div class="modal-action">
                     <button class="btn" @click="closeFailModal">ยกเลิก</button>
                     <button class="btn btn-primary" :disabled="autoSaving" @click="saveFailStatus">บันทึก</button>
@@ -194,6 +247,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { ConductService } from '../../api/conduct';
 import Swal from 'sweetalert2';
 
 const props = defineProps({
@@ -233,6 +287,12 @@ const pageSize = ref(10);
 const currentPage = ref(1);
 const localInspectionData = ref({});
 const autoSaving = computed(() => props.saving);
+
+const conductService = new ConductService();
+const studentFailHistory = ref([]);
+const loadingHistory = ref(false);
+const historyPage = ref(1);
+const historyPageSize = 3;
 
 const issueOptions = [
     'รองเท้าไม่ถูกระเบียบ',
@@ -332,24 +392,91 @@ const markPass = (studentId) => {
     syncLocalState();
 };
 
-const openFailModal = (studentId) => {
+const markAbsent = (studentId) => {
+    localInspectionData.value[studentId] = {
+        ispass: false,
+        issues: ['ไม่มาตรวจ'],
+        remark: 'ไม่มาตรวจ',
+    };
+
+    syncLocalState();
+};
+
+const openFailModal = async (studentId) => {
     const existing = localInspectionData.value[studentId] || {};
     const existingIssues = Array.isArray(existing.issues) ? existing.issues : [];
 
     const selectedPresetIssues = existingIssues.filter((issue) => issueOptions.includes(issue));
     const customIssues = existingIssues.filter((issue) => !issueOptions.includes(issue));
-    const hasSavedRemark = Object.prototype.hasOwnProperty.call(existing, 'remark');
-    const selectedRemark = hasSavedRemark
-        ? (remarkOptions.includes(existing.remark) ? existing.remark : '')
-        : DEFAULT_REMARK;
 
     failModal.value.studentId = studentId;
     failModal.value.form = {
         issues: selectedPresetIssues,
         customIssue: customIssues.join(', '),
-        remark: selectedRemark,
+        remark: DEFAULT_REMARK,
     };
+
+    studentFailHistory.value = [];
+    historyPage.value = 1;
     failModal.value.show = true;
+
+    loadingHistory.value = true;
+    try {
+        const res = await conductService.getStudentConduct(studentId);
+        const allConducts = res?.data || [];
+
+        studentFailHistory.value = allConducts.filter(
+            (item) => item.behavior_type === 'หมวดร่างกายและการแต่งกาย'
+        );
+
+        const hasSavedRemark = Object.prototype.hasOwnProperty.call(existing, 'remark');
+
+        if (hasSavedRemark && remarkOptions.includes(existing.remark)) {
+            failModal.value.form.remark = existing.remark;
+        } else {
+            if (studentFailHistory.value.length > 0) {
+                const latestHistory = studentFailHistory.value[studentFailHistory.value.length - 1];
+                const lastDescription = latestHistory?.description || '';
+
+                const matchedIndex = remarkOptions.findIndex((option) => {
+                    const mainText = option.split('-')[0].trim();
+                    return lastDescription.includes(mainText);
+                });
+
+                if (matchedIndex !== -1) {
+                    const nextIndex = Math.min(matchedIndex + 1, remarkOptions.length - 1);
+                    failModal.value.form.remark = remarkOptions[nextIndex];
+                } else {
+                    failModal.value.form.remark = DEFAULT_REMARK;
+                }
+            } else {
+                failModal.value.form.remark = DEFAULT_REMARK;
+            }
+        }
+    } catch (error) {
+        console.error('Error fetching student conduct:', error);
+    } finally {
+        loadingHistory.value = false;
+    }
+};
+
+const totalHistoryPages = computed(() => {
+    return Math.ceil(studentFailHistory.value.length / historyPageSize) || 1;
+});
+
+const paginatedFailHistory = computed(() => {
+    const start = (historyPage.value - 1) * historyPageSize;
+    return studentFailHistory.value.slice(start, start + historyPageSize);
+});
+
+const formatDateBE = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const yearBE = date.getFullYear() + 543;
+    return `${day}/${month}/${yearBE}`;
 };
 
 const closeFailModal = () => {

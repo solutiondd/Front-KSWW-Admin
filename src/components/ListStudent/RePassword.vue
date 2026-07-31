@@ -69,7 +69,7 @@ async function confirmReset() {
         await Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถรีเซ็ตรหัสผ่านได้',
+            text: e?.response?.data?.error || e?.message || 'ไม่สามารถรีเซ็ตรหัสผ่านได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app')?.removeAttribute('aria-hidden')

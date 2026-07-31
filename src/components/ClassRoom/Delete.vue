@@ -61,7 +61,7 @@ async function confirmDelete() {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถลบห้องเรียนได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถลบห้องเรียนได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')

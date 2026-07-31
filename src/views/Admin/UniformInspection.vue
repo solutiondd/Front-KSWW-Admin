@@ -267,6 +267,7 @@ const mergeInspectionStudents = (existingStudents, incomingStudents) => {
                 ? {
                     issues: Array.isArray(item?.issues) ? item.issues : [],
                     remark: item?.remark || '',
+                    ...(item?.conduct_id ? { conduct_id: item.conduct_id } : {}),
                 }
                 : {}),
         };
@@ -294,15 +295,42 @@ const parseConductRemark = (remark) => {
     return { label, level, score };
 };
 
-const createConductForFailedStudents = async (inspectionResponse) => {
-    const failedStudents = (inspectionResponse?.data?.students || []).filter((item) => item?.ispass === false);
+const findNestedId = (value, visited = new Set()) => {
+    if (!value || typeof value !== 'object') return '';
+    if (visited.has(value)) return '';
+    visited.add(value);
 
-    if (!failedStudents.length) {
-        return { total: 0, failed: 0 };
+    if (typeof value._id === 'string' && value._id.trim()) {
+        return value._id.trim();
     }
 
-    const studentsForDeduction = failedStudents
+    if (Array.isArray(value)) {
+        for (const item of value) {
+            const nestedId = findNestedId(item, visited);
+            if (nestedId) return nestedId;
+        }
+        return '';
+    }
+
+    for (const nestedValue of Object.values(value)) {
+        const nestedId = findNestedId(nestedValue, visited);
+        if (nestedId) return nestedId;
+    }
+
+    return '';
+};
+
+const getConductIdFromResponse = (response) => {
+    return findNestedId(response) || (typeof response?.id === 'string' ? response.id.trim() : '');
+};
+
+const createConductForFailedStudents = async (studentsPayload) => {
+    const studentsForDeduction = (studentsPayload || [])
         .map((item) => {
+            if (item?.ispass !== false) return null;
+
+            if (item?.remark === 'ไม่มาตรวจ') return null;
+
             const conductRule = parseConductRemark(item?.remark);
             if (!conductRule) return null;
 
@@ -326,12 +354,12 @@ const createConductForFailedStudents = async (inspectionResponse) => {
         .filter(Boolean);
 
     if (!studentsForDeduction.length) {
-        return { total: 0, failed: 0 };
+        return { students: studentsPayload, total: 0, failed: 0, createdConductIds: [] };
     }
 
     const results = await Promise.allSettled(
-        studentsForDeduction.map((item) => {
-            return conductService.createConduct({
+        studentsForDeduction.map(async (item) => {
+            const response = await conductService.createConduct({
                 student_id: item.studentId,
                 behavior_type: 'หมวดร่างกายและการแต่งกาย',
                 behavior: 'ผิดระเบียบเรื่องเครื่องแบบทรงผมและร่างกายตนเอง',
@@ -339,17 +367,100 @@ const createConductForFailedStudents = async (inspectionResponse) => {
                 description: item.description,
                 score: item.score,
             });
+
+            const conductId = getConductIdFromResponse(response);
+            if (!conductId) {
+                throw new Error(`Missing conduct id for student ${item.studentId}`);
+            }
+
+            return {
+                studentId: item.studentId,
+                conductId,
+            };
         })
     );
 
-    const failedCount = results.filter((result) => result.status === 'rejected').length;
+    const conductIdMap = new Map();
+    const createdConductIds = [];
+    let failedCount = 0;
+
+    results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+            const conductId = result.value?.conductId;
+            const studentId = result.value?.studentId;
+            if (conductId && studentId) {
+                conductIdMap.set(String(studentId), conductId);
+                createdConductIds.push(conductId);
+            }
+        } else {
+            failedCount += 1;
+        }
+    });
+
+    const studentsWithConductIds = (studentsPayload || []).map((item) => {
+        if (item?.ispass !== false) return item;
+
+        const studentId = item?.student_id?._id || item?.student_id;
+        const conductId = conductIdMap.get(String(studentId || ''));
+        if (!conductId) return item;
+
+        return {
+            ...item,
+            conduct_id: conductId,
+        };
+    });
+
     return {
+        students: studentsWithConductIds,
         total: studentsForDeduction.length,
         failed: failedCount,
+        createdConductIds,
     };
 };
 
-const deleteOldConductForFailedStudents = async (existingInspection) => {
+const deleteConductsByIds = async (conductIds) => {
+    const ids = Array.from(new Set((conductIds || []).filter(Boolean)));
+    if (!ids.length) {
+        return { deletedCount: 0, failed: 0 };
+    }
+
+    const results = await Promise.allSettled(ids.map((id) => conductService.deleteConduct(id)));
+    return {
+        deletedCount: results.filter((result) => result.status === 'fulfilled').length,
+        failed: results.filter((result) => result.status === 'rejected').length,
+    };
+};
+
+const buildCurrentStatusMap = (studentsPayload) => {
+    return new Map(
+        (studentsPayload || [])
+            .map((item) => {
+                const studentId = getStudentIdValue(item?.student_id);
+                if (!studentId) return null;
+                return [String(studentId), item?.ispass === true ? 'pass' : 'fail'];
+            })
+            .filter(Boolean)
+    );
+};
+
+const buildNewConductIdMap = (studentsPayload) => {
+    return new Map(
+        (studentsPayload || [])
+            .map((item) => {
+                const studentId = getStudentIdValue(item?.student_id);
+                const conductId = String(item?.conduct_id || '').trim();
+                if (!studentId || !conductId) return null;
+                return [String(studentId), conductId];
+            })
+            .filter(Boolean)
+    );
+};
+
+const deleteOldConductForFailedStudents = async (
+    existingInspection,
+    currentStatusMap = new Map(),
+    newConductIdMap = new Map()
+) => {
     const oldFailedStudents = (existingInspection?.students || []).filter((item) => item?.ispass === false);
     if (!oldFailedStudents.length) {
         return { deletedNames: [], deletedCount: 0, failed: 0 };
@@ -363,6 +474,31 @@ const deleteOldConductForFailedStudents = async (existingInspection) => {
     for (const oldItem of oldFailedStudents) {
         const studentId = getStudentIdValue(oldItem?.student_id);
         if (!studentId) continue;
+
+        const status = currentStatusMap.get(String(studentId));
+        const shouldDeleteForPass = status === 'pass';
+        const shouldReplaceForFail = status === 'fail' && newConductIdMap.has(String(studentId));
+
+        if (!shouldDeleteForPass && !shouldReplaceForFail) {
+            continue;
+        }
+
+        const conductId = String(oldItem?.conduct_id || '').trim();
+        if (conductId) {
+            try {
+                await conductService.deleteConduct(conductId);
+                deletedCount += 1;
+                const deletedName =
+                    getStudentNameValue(oldItem?.student_id) ||
+                    getStudentDisplayLabelById(studentId);
+                if (deletedName) {
+                    deletedNames.add(deletedName);
+                }
+            } catch (error) {
+                failedCount += 1;
+            }
+            continue;
+        }
 
         try {
             const conductResponse = await conductService.getStudentConduct(studentId);
@@ -438,15 +574,25 @@ const saveWholeClassroomInspection = async () => {
     }
 
     isSaving.value = true;
+    let conductSummary = {
+        students: studentsPayload,
+        total: 0,
+        failed: 0,
+        createdConductIds: [],
+    };
+    const currentStatusMap = buildCurrentStatusMap(studentsPayload);
+    let newConductIdMap = new Map();
+
     try {
-        const inspectionResponse = await uniformInspectionService.createUniformInspection({
+        conductSummary = await createConductForFailedStudents(studentsPayload);
+        newConductIdMap = buildNewConductIdMap(conductSummary.students);
+
+        await uniformInspectionService.createUniformInspection({
             date: selectedDate.value,
             grade: selectedGrade.value,
             classroom: normalizeClassroom(selectedClassroom.value),
-            students: studentsPayload,
+            students: conductSummary.students,
         });
-
-        const conductSummary = await createConductForFailedStudents(inspectionResponse);
 
         if (conductSummary.total > 0 && conductSummary.failed > 0) {
             Swal.fire(
@@ -464,17 +610,20 @@ const saveWholeClassroomInspection = async () => {
         if (isDuplicateInspection) {
             try {
                 const existingInspection = error.response.data.data;
-                const mergedStudents = mergeInspectionStudents(existingInspection.students || [], studentsPayload);
-                const deleteSummary = await deleteOldConductForFailedStudents(existingInspection);
+                const deleteSummary = await deleteOldConductForFailedStudents(
+                    existingInspection,
+                    currentStatusMap,
+                    newConductIdMap
+                );
+                const mergedStudents = mergeInspectionStudents(existingInspection.students || [], conductSummary.students);
 
-                const updateResponse = await uniformInspectionService.updateUniformInspection(existingInspection._id, {
+                await uniformInspectionService.updateUniformInspection(existingInspection._id, {
                     date: selectedDate.value,
                     grade: selectedGrade.value,
                     classroom: normalizeClassroom(selectedClassroom.value),
                     students: mergedStudents,
                 });
 
-                const conductSummary = await createConductForFailedStudents(updateResponse);
                 const deletedNamesText = deleteSummary.deletedCount > 0
                     ? `ลบการหักคะแนนเดิม ${deleteSummary.deletedCount} รายการ${deleteSummary.deletedNames.length ? `: ${deleteSummary.deletedNames.join(', ')}` : ''}`
                     : '';
@@ -497,11 +646,14 @@ const saveWholeClassroomInspection = async () => {
                 inspectionData.value = {};
                 return;
             } catch (updateError) {
+                await deleteConductsByIds(conductSummary.createdConductIds);
                 console.error('Update duplicate uniform inspection error:', updateError);
                 Swal.fire('เกิดข้อผิดพลาด', 'อัปเดตข้อมูลซ้ำไม่สำเร็จ', 'error');
                 return;
             }
         }
+
+        await deleteConductsByIds(conductSummary.createdConductIds);
 
         console.error('Save whole classroom inspection error:', error);
         Swal.fire('เกิดข้อผิดพลาด', 'บันทึกเช็คระเบียบทั้งห้องไม่สำเร็จ', 'error');

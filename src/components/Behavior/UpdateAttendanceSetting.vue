@@ -65,6 +65,41 @@ import { ref } from 'vue'
 import { BehaviorService } from '../../api/behavior'
 import Swal from 'sweetalert2';
 
+const createDefaultConductSetting = () => ({
+    enabled: false,
+    late: {
+        enabled: false,
+        cutoff_time: '08:01:00',
+        score: -1,
+        behavior_type: 'attendance',
+        behavior: 'มาสาย',
+        behavior_level: 1,
+        description_template: 'มาสายในวันที่ {{date}} เวลาเข้าเรียนครั้งแรก {{first_time}}',
+    },
+    absent: {
+        enabled: false,
+        cutoff_time: null,
+        score: -3,
+        behavior_type: 'attendance',
+        behavior: 'ขาดเรียน',
+        behavior_level: 2,
+        description_template: 'ขาดเรียนในวันที่ {{date}} เนื่องจากไม่พบข้อมูลเข้าเรียน',
+    },
+})
+
+const cloneConductSetting = (setting) => ({
+    ...createDefaultConductSetting(),
+    ...(setting || {}),
+    late: {
+        ...createDefaultConductSetting().late,
+        ...((setting && setting.late) || {}),
+    },
+    absent: {
+        ...createDefaultConductSetting().absent,
+        ...((setting && setting.absent) || {}),
+    },
+})
+
 const emit = defineEmits(['updated'])
 
 const modal = ref(null)
@@ -75,13 +110,10 @@ const service = new BehaviorService()
 let originalSetting = null
 
 const open = (conductSetting) => {
-    originalSetting = conductSetting
-    form.value = {
-        enabled: conductSetting.enabled,
-        late: { ...conductSetting.late },
-        absent: { ...conductSetting.absent },
-    }
-    absentTimeEnabled.value = !!conductSetting.absent?.cutoff_time
+    const nextSetting = cloneConductSetting(conductSetting)
+    originalSetting = cloneConductSetting(conductSetting)
+    form.value = nextSetting
+    absentTimeEnabled.value = !!nextSetting.absent?.cutoff_time
     modal.value?.showModal()
 }
 
@@ -101,10 +133,11 @@ const close = () => {
 const save = async () => {
     saving.value = true
     try {
+        const baseSetting = originalSetting || createDefaultConductSetting()
         const payload = {
             enabled: form.value.enabled,
-            late: { ...originalSetting.late, ...form.value.late },
-            absent: { ...originalSetting.absent, ...form.value.absent },
+            late: { ...baseSetting.late, ...form.value.late },
+            absent: { ...baseSetting.absent, ...form.value.absent },
         }
         await service.updateAttendanceConductSetting(payload)
         close()

@@ -265,7 +265,7 @@ const loadDevices = async () => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถโหลดข้อมูลอุปกรณ์ได้'
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถโหลดข้อมูลอุปกรณ์ได้'
         });
     } finally {
         loadingDevices.value = false;
@@ -325,7 +325,7 @@ const handleSubmit = async () => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: error.response?.data?.message || 'ไม่สามารถสร้าง Modeling ได้'
+            text: error?.response?.data?.error || error?.response?.data?.message || error?.message || 'ไม่สามารถสร้าง Modeling ได้'
         });
     } finally {
         isSubmitting.value = false;

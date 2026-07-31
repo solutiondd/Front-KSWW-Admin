@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 max-[944px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-16">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 class="text-xl sm:text-2xl font-bold text-white">จัดการห้องเรียน</h2>
             <div class="flex gap-2">
@@ -106,7 +106,7 @@ const fetchClassRooms = async () => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถโหลดข้อมูลห้องเรียนได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถโหลดข้อมูลห้องเรียนได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')
@@ -164,7 +164,7 @@ const handleCreateSuccess = async (formData) => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: error.response?.data?.error || 'ไม่สามารถเพิ่มห้องเรียนได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถเพิ่มห้องเรียนได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')
@@ -196,7 +196,7 @@ const handleUpdateSuccess = async (formData) => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถแก้ไขห้องเรียนได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถแก้ไขห้องเรียนได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')

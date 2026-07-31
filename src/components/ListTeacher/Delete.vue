@@ -10,7 +10,7 @@
                 ยืนยันการลบ
             </h3>
             <p class="text-sm mb-4" v-if="teacher">ต้องการลบอาจารย์ <span class="font-semibold">{{ teacher.name
-                    }}</span> ใช่หรือไม่?</p>
+            }}</span> ใช่หรือไม่?</p>
             <p v-else class="text-sm mb-4">กำลังเตรียมข้อมูล...</p>
 
             <div class="flex justify-end gap-2 mt-2">
@@ -60,7 +60,7 @@ async function confirmDelete() {
         }
     } catch (e) {
         console.error('Delete teacher error:', e)
-        await showError()
+        await showError(e)
     } finally {
         loading.value = false
     }
@@ -78,12 +78,12 @@ async function showSuccess() {
     })
 }
 
-async function showError() {
+async function showError(error = null) {
     const { default: Swal } = await import('sweetalert2')
     await Swal.fire({
         icon: 'error',
         title: 'เกิดข้อผิดพลาด',
-        text: 'ไม่สามารถลบอาจารย์ได้',
+        text: error?.response?.data?.error || error?.message || 'ไม่สามารถลบอาจารย์ได้',
         confirmButtonColor: '#2563eb',
         didOpen: () => { document.getElementById('app')?.removeAttribute('aria-hidden') }
     })

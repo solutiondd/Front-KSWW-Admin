@@ -116,7 +116,7 @@
                         <input v-model="formData.rfid" type="text" class="input input-bordered w-full"
                             @input="validateRfid" autocomplete="off" />
                         <label v-if="rfidError" class="label"><span class="label-text-alt text-error">{{ rfidError
-                        }}</span></label>
+                                }}</span></label>
                     </div>
 
                     <div class="form-control w-full">
@@ -453,7 +453,7 @@ const handleSubmit = async () => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถแก้ไขข้อมูลอาจารย์ได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถแก้ไขข้อมูลอาจารย์ได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app')?.removeAttribute('aria-hidden')

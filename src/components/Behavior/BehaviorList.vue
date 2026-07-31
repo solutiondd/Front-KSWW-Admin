@@ -53,9 +53,9 @@
                         </div>
                         <div class="text-sm space-y-1 text-base-content/80">
                             <div>เวลาตัด: <span class="font-medium">{{ conductSetting.absent?.cutoff_time || '-'
-                                    }}</span></div>
-                            <div>หักคะแนน: <span class="font-medium text-error">{{ conductSetting.absent?.score
                             }}</span></div>
+                            <div>หักคะแนน: <span class="font-medium text-error">{{ conductSetting.absent?.score
+                                    }}</span></div>
                             <div>พฤติกรรม: <span class="font-medium">{{ conductSetting.absent?.behavior }}</span></div>
                         </div>
                     </div>
@@ -158,10 +158,10 @@
                                                 class="level-row mb-2">
                                                 <span class="font-semibold text-primary">{{ level.level }} : {{
                                                     level.name
-                                                }}</span>
+                                                    }}</span>
                                                 <div class="flex items-center justify-between w-full md:w-auto">
                                                     <span class="text-xs text-gray-500 score">หักคะแนน: {{ level.score
-                                                        }}</span>
+                                                    }}</span>
                                                     <div class="">
                                                         <button v-if="auth.user?.role !== 'viewer'"
                                                             @click="openEdit('level', level)"
@@ -209,6 +209,28 @@ import Update from './Update.vue';
 import UpdateAttendanceSetting from './UpdateAttendanceSetting.vue';
 import { useAuthStore } from '../../stores/auth';
 
+const createDefaultConductSetting = () => ({
+    enabled: false,
+    late: {
+        enabled: false,
+        cutoff_time: '08:01:00',
+        score: -1,
+        behavior_type: 'attendance',
+        behavior: 'มาสาย',
+        behavior_level: 1,
+        description_template: 'มาสายในวันที่ {{date}} เวลาเข้าเรียนครั้งแรก {{first_time}}',
+    },
+    absent: {
+        enabled: false,
+        cutoff_time: null,
+        score: -3,
+        behavior_type: 'attendance',
+        behavior: 'ขาดเรียน',
+        behavior_level: 2,
+        description_template: 'ขาดเรียนในวันที่ {{date}} เนื่องจากไม่พบข้อมูลเข้าเรียน',
+    },
+});
+
 export default {
     name: 'BehaviorList',
     components: {
@@ -237,7 +259,7 @@ export default {
             editType: null,
             editData: null,
             auth: useAuthStore(),
-            conductSetting: null,
+            conductSetting: createDefaultConductSetting(),
             conductSettingOpen: false,
         };
     },
@@ -362,9 +384,21 @@ export default {
         async fetchConductSetting() {
             try {
                 const res = await this.service.getAttendanceConductSetting();
-                this.conductSetting = res.data || null;
+                this.conductSetting = res.data ? {
+                    ...createDefaultConductSetting(),
+                    ...res.data,
+                    late: {
+                        ...createDefaultConductSetting().late,
+                        ...(res.data.late || {}),
+                    },
+                    absent: {
+                        ...createDefaultConductSetting().absent,
+                        ...(res.data.absent || {}),
+                    },
+                } : createDefaultConductSetting();
             } catch (e) {
                 console.error('Fetch conduct setting error:', e);
+                this.conductSetting = createDefaultConductSetting();
             }
         },
         openConductSettingModal() {

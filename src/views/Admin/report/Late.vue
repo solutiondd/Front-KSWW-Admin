@@ -1,12 +1,12 @@
 <template>
-    <div class="space-y-6 max-[944px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-16">
         <div class="flex flex-col md:flex-row md:justify-between md:items-center text-white gap-2">
             <h1 class="text-lg md:text-3xl font-bold">ตารางมาสาย</h1>
             <div class="flex flex-row gap-2 items-stretch md:items-center justify-end md:justify-center">
-                <input v-model="filters.start" type="date" @change="fetchData" :max="getDefaultDate()"
+                <input v-model="filters.start" type="date" @change="handleDateChange" :max="getDefaultDate()"
                     class="text-sm px-2 py-1 bg-white border border-base-300 focus:outline-none focus:ring-2 focus:ring-primary rounded shadow-sm text-base-content" />
                 <span>-</span>
-                <input v-model="filters.end" type="date" @change="fetchData" :max="getDefaultDate()"
+                <input v-model="filters.end" type="date" @change="handleDateChange" :max="getDefaultDate()"
                     class="text-sm px-2 py-1 bg-white border border-base-300 focus:outline-none focus:ring-2 focus:ring-primary rounded shadow-sm text-base-content" />
             </div>
         </div>
@@ -51,6 +51,20 @@
                         <option v-for="room in allRooms" :key="room" :value="room">{{ room }}</option>
                     </select>
                 </div>
+
+                <div class="form-control">
+                    <label class="label py-1">
+                        <span class="label-text text-sm font-medium">แถวต่อหน้า</span>
+                    </label>
+                    <select v-model.number="pagination.limit" @change="handleLimitChange"
+                        class="select select-sm select-bordered w-full">
+                        <option :value="10">10</option>
+                        <option :value="20">20</option>
+                        <option :value="50">50</option>
+                        <option :value="100">100</option>
+                    </select>
+                </div>
+
                 <div v-if="residentRole === 'teacher'"
                     class="form-control md:col-start-4 flex flex-col items-center md:items-end md:justify-end md:h-full">
                     <div
@@ -77,13 +91,13 @@
 
         <div v-else>
             <LateTable 
-            :data="paginatedData" 
-            :pagination="paginationData" 
-            :filters="filters" 
-            :grade="filters.grade"
-            :classroom="filters.classroom"
-            :allowance-rules="allowanceRules"
-            @page-change="goToPage" />
+                :data="lateData" 
+                :pagination="pagination" 
+                :filters="filters" 
+                :grade="filters.grade"
+                :classroom="filters.classroom"
+                :allowance-rules="allowanceRules"
+                @page-change="goToPage" />
         </div>
     </div>
 </template>
@@ -134,7 +148,9 @@ const filters = ref({
 
 const pagination = ref({
     page: 1,
-    limit: 10
+    limit: 10,
+    total_items: 0,
+    total_pages: 1
 })
 
 function getDefaultDate() {
@@ -142,17 +158,25 @@ function getDefaultDate() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 }
 
+const handleLimitChange = () => {
+    pagination.value.page = 1
+    fetchData()
+}
+
 const fetchData = async () => {
     loading.value = true
     error.value = null
     try {
+        const isSingleDay = filters.value.start && filters.value.end && (filters.value.start === filters.value.end)
+        
         let params = {
             start: filters.value.start,
             end: filters.value.end,
             role: filters.value.role,
-            page: 1,
-            limit: 50
+            page: isSingleDay ? 1 : pagination.value.page,
+            limit: isSingleDay ? 10000 : pagination.value.limit
         }
+
         const searchTerm = filters.value.search.trim();
         if (searchTerm) {
             if (/^\d+$/.test(searchTerm)) {
@@ -164,19 +188,38 @@ const fetchData = async () => {
         if (filters.value.role === 'student') {
             params.grade = filters.value.grade;
             if (
-                filters.value.classroom === '' ||
-                filters.value.classroom === undefined ||
-                filters.value.classroom === null ||
-                isNaN(Number(filters.value.classroom))
+                filters.value.classroom !== '' &&
+                filters.value.classroom !== undefined &&
+                filters.value.classroom !== null &&
+                !isNaN(Number(filters.value.classroom))
             ) {
-            } else {
                 params.classroom = Number(filters.value.classroom);
             }
         }
+
         const response = await reportApi.getLateReport(params)
         if (response.message === 'Success') {
-            lateData.value = response.data || []
-            pagination.value.page = 1
+            let fetchedData = response.data || []
+
+            if (isSingleDay) {
+                fetchedData.sort((a, b) => {
+                    const timeA = getEntryTimeForSort(a);
+                    const timeB = getEntryTimeForSort(b);
+                    return timeB.localeCompare(timeA);
+                });
+
+                const currentLimit = pagination.value.limit;
+                pagination.value.total_items = fetchedData.length;
+                pagination.value.total_pages = Math.ceil(fetchedData.length / currentLimit) || 1;
+
+                const startIndex = (pagination.value.page - 1) * currentLimit;
+                lateData.value = fetchedData.slice(startIndex, startIndex + currentLimit);
+            } else {
+                lateData.value = fetchedData;
+                pagination.value.page = response.page || 1;
+                pagination.value.total_items = response.total_items || 0;
+                pagination.value.total_pages = response.total_pages || 1;
+            }
         }
     } catch (err) {
         error.value = 'เกิดข้อผิดพลาดในการดึงข้อมูล กรุณาลองใหม่อีกครั้ง'
@@ -186,6 +229,20 @@ const fetchData = async () => {
     }
 }
 
+function getEntryTimeForSort(item) {
+    if (item.late_dates && item.late_dates.length > 0) {
+        const late = item.late_dates[0];
+        if (late.timeStamps && late.timeStamps.length > 0) {
+            return late.timeStamps[0].timeStamp || '';
+        }
+    }
+    return '';
+}
+
+const handleDateChange = () => {
+    pagination.value.page = 1
+    fetchData()
+}
 
 const handleRoleChange = () => {
     pagination.value.page = 1
@@ -193,8 +250,8 @@ const handleRoleChange = () => {
         filters.value.grade = ''
         filters.value.classroom = ''
     } else {
-        filters.value.grade = allGrades.value.length > 0 ? allGrades.value[0] : ''
-        filters.value.classroom = allRooms.value.length > 0 ? allRooms.value[0] : '1'
+        filters.value.grade = ''
+        filters.value.classroom = ''
     }
     fetchData()
 }
@@ -205,6 +262,11 @@ const handleGradeChange = () => {
 }
 
 const handleClassroomChange = () => {
+    pagination.value.page = 1
+    fetchData()
+}
+
+const handleSearchInput = () => {
     pagination.value.page = 1
     fetchData()
 }
@@ -263,8 +325,9 @@ const paginationData = computed(() => ({
 }))
 
 const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages.value) {
+    if (page >= 1 && page <= pagination.value.total_pages) {
         pagination.value.page = page
+        fetchData()
     }
 }
 
@@ -282,9 +345,9 @@ onMounted(async () => {
         })
         allGrades.value = toVisibleSortedGrades(Array.from(gradesSet))
         allRooms.value = Array.from(roomsSet)
-        if (filters.value.role === 'student' && !filters.value.grade) {
-            filters.value.grade = allGrades.value[0] || ''
-        }
+        // if (filters.value.role === 'student' && !filters.value.grade) {
+        //     filters.value.grade = allGrades.value[0] || ''
+        // }
     } catch (err) {
         console.error('Error fetching class rooms:', err)
     }

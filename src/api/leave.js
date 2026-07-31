@@ -96,23 +96,26 @@ export class LeaveService {
   // Leave Request
   async getLeaveRequests(params = {}) {
     try {
-      const response = await axios.get(`${this.baseUrl}leave-request`, {
-        headers: {
-          Authorization: `Bearer ${this.token}`,
-        },
-        params: {
-          start_date: params.start_date ?? "",
-          end_date: params.end_date ?? "",
-          status: params.status ?? "",
-          user_id: params.user_id ?? "",
-        },
-      });
-      return response.data;
+        const cleanParams = {};
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && String(value).trim() !== '') {
+                cleanParams[key] = String(value).trim();
+            }
+        });
+
+        const response = await axios.get(`${this.baseUrl}leave-request`, {
+            headers: {
+                Authorization: `Bearer ${this.token}`,
+            },
+            params: cleanParams,
+        });
+        
+        return response.data;
     } catch (error) {
-      console.error("Get leave requests error:", error);
-      throw error;
+        console.error("Get leave requests error:", error);
+        throw error;
     }
-  }
+}
 
   async createLeaveRequest(data) {
     try {

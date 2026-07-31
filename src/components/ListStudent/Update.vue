@@ -119,6 +119,13 @@
                                 }}</span></label>
                     </div>
 
+                    <div class="form-control w-full md:col-span-2">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" v-model="formData.no_use_face" class="checkbox checkbox-primary" />
+                            <span class="label-text">ไม่ใช้สแกนใบหน้า</span>
+                        </label>
+                    </div>
+
                 </div>
 
                 <div class="modal-action">
@@ -168,7 +175,8 @@ const formData = ref({
     classroom: '',
     picture: null,
     rfid: '',
-    guardian_phone: ''
+    guardian_phone: '',
+    no_use_face: false
 })
 
 const props = defineProps({
@@ -267,7 +275,8 @@ const openModal = async (student) => {
         rfid: student.rfid !== undefined && student.rfid !== null ? String(student.rfid) : '',
         guardian_phone: student.guardian_phone !== undefined && student.guardian_phone !== null
             ? String(student.guardian_phone)
-            : ''
+            : '',
+        no_use_face: Boolean(student.no_use_face === true || student.no_use_face === 'true')
     }
     currentImage.value = getPictureUrl(student.picture) || ''
     previewImage.value = ''
@@ -456,7 +465,7 @@ const handleSubmit = async () => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถแก้ไขข้อมูลนักเรียนได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถแก้ไขข้อมูลนักเรียนได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app')?.removeAttribute('aria-hidden')

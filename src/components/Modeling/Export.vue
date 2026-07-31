@@ -203,13 +203,13 @@ async function exportToExcel() {
         worksheet.getColumn(1).alignment = { horizontal: 'center', vertical: 'middle' }
 
         const buffer = await workbook.xlsx.writeBuffer()
-    saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `Modeling.xlsx`)
+        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `Modeling.xlsx`)
     } catch (error) {
         console.error('Error exporting modeling excel:', error)
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถส่งออก Excel ได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถส่งออก Excel ได้',
         })
     } finally {
         loadingExport.value = false

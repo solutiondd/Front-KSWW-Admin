@@ -75,7 +75,7 @@ const confirmDelete = async () => {
     } catch (error) {
         console.error('Delete error:', error)
         await closeModal()
-        emit('deleteError', device.value._id)
+        emit('deleteError', error)
     } finally {
         loading.value = false
     }

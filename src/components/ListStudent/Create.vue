@@ -116,39 +116,49 @@
                     </div>
 
                     <div class="form-control w-full md:col-span-2">
-                        <label class="label">
+                        <!-- <label class="label">
                             <span class="label-text">ชั้นปี / ห้อง</span>
-                        </label>
+                        </label> -->
                         <template v-if="auth.user?.role === 'teacher'">
                             <div class="p-2 rounded bg-gray-100 border text-base">
                                 ชั้น: {{ mapGradeDisplay(formData.grade) }} ห้อง: {{ formData.classroom }}
                             </div>
                         </template>
                         <template v-else>
-                            <div class="form-control w-full mb-2">
-                                <label class="label">
-                                    <span class="label-text">ชั้นปี</span>
-                                </label>
-                                <select v-model="formData.grade" @change="handleGradeChange"
-                                    class="select select-bordered w-full" required>
-                                    <option value="">เลือกชั้นปี</option>
-                                    <option v-for="grade in availableGrades" :key="grade" :value="grade">{{
-                                        mapGradeDisplay(grade) }}
-                                    </option>
-                                </select>
-                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-control w-full">
+                                    <label class="label">
+                                        <span class="label-text">ชั้นปี</span>
+                                    </label>
+                                    <select v-model="formData.grade" @change="handleGradeChange"
+                                        class="select select-bordered w-full" required>
+                                        <option value="">เลือกชั้นปี</option>
+                                        <option v-for="grade in availableGrades" :key="grade" :value="grade">
+                                            {{ mapGradeDisplay(grade) }}
+                                        </option>
+                                    </select>
+                                </div>
 
-                            <div class="form-control w-full">
-                                <label class="label">
-                                    <span class="label-text">ห้อง</span>
-                                </label>
-                                <select v-model="formData.classroom" class="select select-bordered w-full" required>
-                                    <option value="">เลือกห้อง</option>
-                                    <option v-for="room in availableClassrooms" :key="room" :value="room">{{ room }}
-                                    </option>
-                                </select>
+                                <div class="form-control w-full">
+                                    <label class="label">
+                                        <span class="label-text">ห้อง</span>
+                                    </label>
+                                    <select v-model="formData.classroom" class="select select-bordered w-full" required>
+                                        <option value="">เลือกห้อง</option>
+                                        <option v-for="room in availableClassrooms" :key="room" :value="room">
+                                            {{ room }}
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
                         </template>
+                    </div>
+
+                    <div class="form-control w-full md:col-span-2">
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="checkbox" v-model="formData.no_use_face" class="checkbox checkbox-primary" />
+                            <span class="label-text">ไม่ใช้สแกนใบหน้า</span>
+                        </label>
                     </div>
                 </div>
 
@@ -188,7 +198,8 @@ const formData = ref({
     guardian_phone: '',
     grade: '',
     classroom: '',
-    picture: null
+    picture: null,
+    no_use_face: false
 })
 
 const useridError = ref('')
@@ -308,7 +319,8 @@ const openModal = (fixed = null) => {
             guardian_phone: '',
             grade: fixed.grade,
             classroom: fixed.classroom,
-            picture: null
+            picture: null,
+            no_use_face: false
         }
     } else {
         formData.value = {
@@ -320,7 +332,8 @@ const openModal = (fixed = null) => {
             guardian_phone: '',
             grade: '',
             classroom: '',
-            picture: null
+            picture: null,
+            no_use_face: false
         }
     }
     previewImage.value = ''
@@ -344,7 +357,8 @@ const closeModal = () => {
         guardian_phone: '',
         grade: '',
         classroom: '',
-        picture: null
+        picture: null,
+        no_use_face: false
     }
     previewImage.value = ''
     fileError.value = ''
@@ -479,12 +493,13 @@ const handleSubmit = async () => {
             if (errStr.includes('duplicatestudentuserid')) {
                 useridError.value = 'มีรหัสนี้แล้ว กรุณาใช้รหัสอื่น'
             } else {
+                const errorMessage = err?.response?.data?.error || err?.message || 'ไม่สามารถเพิ่มนักเรียนได้';
                 closeModal();
                 const { default: Swal } = await import('sweetalert2');
                 Swal.fire({
                     icon: 'error',
                     title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถเพิ่มนักเรียนได้',
+                    text: errorMessage,
                     confirmButtonColor: '#2563eb',
                     didOpen: () => {
                         document.getElementById('app')?.removeAttribute('aria-hidden')

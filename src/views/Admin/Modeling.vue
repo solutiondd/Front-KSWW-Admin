@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 max-[944px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-16">
         <div class="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
             <h1 class="text-lg md:text-3xl font-bold text-white">จัดการเชื่อมต่ออุปกรณ์</h1>
             <div v-if="auth.user?.role !== 'viewer'" class="w-full sm:w-auto flex justify-end">

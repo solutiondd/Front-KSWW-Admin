@@ -67,7 +67,7 @@ async function handleSubmit() {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถบันทึกข้อมูลได้',
+            text: err?.response?.data?.error || err?.message || 'ไม่สามารถบันทึกข้อมูลได้',
         })
     }
     loading.value = false

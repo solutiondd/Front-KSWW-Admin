@@ -1,8 +1,9 @@
 <template>
-    <div class="space-y-6 max-[944px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-16">
         <div class="flex justify-between items-center">
             <h1 class="text-xl sm:text-2xl font-bold text-white">จัดการตำแหน่ง</h1>
-            <button v-if="auth.user?.role !== 'teacher' && auth.user?.role !== 'viewer'" class="btn btn-primary" @click="openCreateModal">
+            <button v-if="auth.user?.role !== 'teacher' && auth.user?.role !== 'viewer'" class="btn btn-primary"
+                @click="openCreateModal">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -47,7 +48,7 @@ const fetchPositions = async () => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถโหลดข้อมูลตำแหน่งได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถโหลดข้อมูลตำแหน่งได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')
@@ -80,7 +81,7 @@ const handleCreateSuccess = async (name) => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถเพิ่มตำแหน่งได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถเพิ่มตำแหน่งได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')
@@ -111,7 +112,7 @@ const handleDeleteSuccess = async (id) => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถลบตำแหน่งได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถลบตำแหน่งได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')

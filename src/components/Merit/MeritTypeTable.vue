@@ -90,7 +90,7 @@ async function deleteMerit(item) {
             Swal.fire({
                 icon: 'error',
                 title: 'เกิดข้อผิดพลาด',
-                text: 'ไม่สามารถลบข้อมูลได้',
+                text: err?.response?.data?.error || err?.message || 'ไม่สามารถลบข้อมูลได้',
             })
         }
     }

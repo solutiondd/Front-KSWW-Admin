@@ -366,49 +366,123 @@ async function handleImport() {
             const resolvedImageFile = await getResizedImageByKey(imageNameKey)
                 || await getResizedImageByKey(cleanedTeacher.userid);
 
-            const formData = {
-                userid: cleanedTeacher.userid,
-                pre_name: cleanedTeacher.pre_name,
-                first_name: cleanedTeacher.first_name,
-                last_name: cleanedTeacher.last_name,
-                position: cleanedTeacher.position,
-                department: cleanedTeacher.department,
-                rfid: cleanedTeacher.rfid,
-                status: 'ปกติ',
-                picture: resolvedImageFile || null
-            };
+            let formData = {};
+            
+            let existing = null;
             try {
-                const response = await teacherService.createTeacher(formData);
-                if (response.message === 'Success') {
-                    importedTeachers.push(response.data);
-                } else {
+                existing = await teacherService.getTeacherByUserid(cleanedTeacher.userid);
+            } catch (e) {
+            }
+
+            if (existing && existing.message === 'Success' && existing.data && existing.data._id) {
+                const oldData = existing.data;
+                
+                let fallbackFirstName = oldData.first_name || '';
+                let fallbackLastName = oldData.last_name || '';
+
+                if ((!fallbackFirstName || !fallbackLastName) && oldData.name) {
+                    let cleanName = oldData.name.replace(/^(เด็กชาย|เด็กหญิง|นาย|นางสาว|นาง|ดร\.|อ\.|ศ\.|ผศ\.|รศ\.)\s*/, '').trim();
+                    const nameParts = cleanName.split(/\s+/);
+                    
+                    fallbackFirstName = nameParts[0] || '';
+                    fallbackLastName = nameParts.slice(1).join(' ') || ''; 
+                }
+
+                formData = {
+                    ...oldData,
+                    userid: cleanedTeacher.userid,
+                };
+                
+                delete formData.picture;
+
+                const isInvalidValue = (val) => {
+                    if (val === undefined || val === null) return true;
+                    const str = val.toString().trim();
+                    return str === '' || str === '-';
+                };
+
+                formData.pre_name = !isInvalidValue(cleanedTeacher.pre_name) ? cleanedTeacher.pre_name : (oldData.pre_name || '');
+                formData.first_name = !isInvalidValue(cleanedTeacher.first_name) ? cleanedTeacher.first_name : fallbackFirstName;
+                formData.last_name = !isInvalidValue(cleanedTeacher.last_name) ? cleanedTeacher.last_name : fallbackLastName;
+                
+                formData.position = !isInvalidValue(cleanedTeacher.position) ? cleanedTeacher.position : oldData.position;
+                formData.department = !isInvalidValue(cleanedTeacher.department) ? cleanedTeacher.department : oldData.department;
+                
+                formData.rfid = cleanedTeacher.rfid !== '' ? cleanedTeacher.rfid : oldData.rfid;
+
+                if (resolvedImageFile) {
+                    formData.picture = resolvedImageFile;
+                }
+
+                try {
+                    const response = await teacherService.updateTeacher(oldData._id, formData);
+                    if (response.message === 'Success') {
+                        importedTeachers.push(response.data);
+                    } else {
+                        failedTeachers.push({
+                            userid: cleanedTeacher.userid,
+                            name: `${formData.pre_name}${formData.first_name} ${formData.last_name}`,
+                            reason: response.message || 'ไม่ทราบสาเหตุ'
+                        });
+                    }
+                } catch (err) {
+                    console.error(`Error updating teacher ${cleanedTeacher.userid}:`, err);
+                    failedTeachers.push({
+                        userid: cleanedTeacher.userid,
+                        name: `${formData.pre_name}${formData.first_name} ${formData.last_name}`,
+                        reason: err.response?.data?.error || err.response?.data?.message || err.message || 'ไม่ทราบสาเหตุ'
+                    });
+                }
+
+            } else {
+                formData = {
+                    userid: cleanedTeacher.userid,
+                    pre_name: cleanedTeacher.pre_name,
+                    first_name: cleanedTeacher.first_name,
+                    last_name: cleanedTeacher.last_name,
+                    position: cleanedTeacher.position,
+                    department: cleanedTeacher.department,
+                    rfid: cleanedTeacher.rfid,
+                    status: 'ปกติ'
+                };
+
+                if (resolvedImageFile) {
+                    formData.picture = resolvedImageFile;
+                }
+
+                try {
+                    const response = await teacherService.createTeacher(formData);
+                    if (response.message === 'Success') {
+                        importedTeachers.push(response.data);
+                    } else {
+                        failedTeachers.push({
+                            userid: cleanedTeacher.userid,
+                            name: `${cleanedTeacher.pre_name}${cleanedTeacher.first_name} ${cleanedTeacher.last_name}`,
+                            reason: response.message || 'ไม่ทราบสาเหตุ'
+                        });
+                    }
+                } catch (err) {
+                    const apiError = err?.response?.data;
+                    let reason = apiError?.error || apiError?.message || err.message || 'ไม่ทราบสาเหตุ';
+                    if (apiError?.message === 'Validation error' && apiError?.error?.includes('"pre_name" must be one of')) {
+                        reason = 'คำนำหน้าไม่ถูกต้อง กรุณาตรวจสอบ เช่น นาย, นาง, นางสาว, Mr., Ms., Mrs.';
+                    } else if (apiError?.message === 'Duplicate data' && apiError?.error?.includes('duplicate teacher userid')) {
+                        reason = 'รหัสนี้มีคนใช้งานแล้ว กรุณาตรวจสอบข้อมูลในไฟล์ Excel';
+                    } else if (reason === '"last_name" is not allowed to be empty' || reason === 'last_name" is not allowed to be empty') {
+                        reason = 'กรุณากรอกนามสกุล';
+                    } else if (/fails to match the required pattern/.test(reason) && /last_name/.test(reason)) {
+                        reason = 'นามสกุลต้องเป็นภาษาไทยหรืออังกฤษเท่านั้น';
+                    } else if (/fails to match the required pattern/.test(reason) && /first_name/.test(reason)) {
+                        reason = 'ชื่อต้องเป็นภาษาไทยหรืออังกฤษเท่านั้น';
+                    } else if (/is required/.test(reason)) {
+                        reason = 'กรุณากรอกข้อมูลให้ครบถ้วน';
+                    }
                     failedTeachers.push({
                         userid: cleanedTeacher.userid,
                         name: `${cleanedTeacher.pre_name}${cleanedTeacher.first_name} ${cleanedTeacher.last_name}`,
-                        reason: response.message || 'ไม่ทราบสาเหตุ'
+                        reason
                     });
                 }
-            } catch (err) {
-                const apiError = err?.response?.data;
-                let reason = apiError?.error || apiError?.message || err.message || 'ไม่ทราบสาเหตุ';
-                if (apiError?.message === 'Validation error' && apiError?.error?.includes('"pre_name" must be one of')) {
-                    reason = 'คำนำหน้าไม่ถูกต้อง กรุณาตรวจสอบ เช่น นาย, นาง, นางสาว, Mr., Ms., Mrs.';
-                } else if (apiError?.message === 'Duplicate data' && apiError?.error?.includes('duplicate teacher userid')) {
-                    reason = 'รหัสนี้มีคนใช้งานแล้ว กรุณาตรวจสอบข้อมูลในไฟล์ Excel';
-                } else if (reason === '"last_name" is not allowed to be empty' || reason === 'last_name" is not allowed to be empty') {
-                    reason = 'กรุณากรอกนามสกุล';
-                } else if (/fails to match the required pattern/.test(reason) && /last_name/.test(reason)) {
-                    reason = 'นามสกุลต้องเป็นภาษาไทยหรืออังกฤษเท่านั้น';
-                } else if (/fails to match the required pattern/.test(reason) && /first_name/.test(reason)) {
-                    reason = 'ชื่อต้องเป็นภาษาไทยหรืออังกฤษเท่านั้น';
-                } else if (/is required/.test(reason)) {
-                    reason = 'กรุณากรอกข้อมูลให้ครบถ้วน';
-                }
-                failedTeachers.push({
-                    userid: cleanedTeacher.userid,
-                    name: `${cleanedTeacher.pre_name}${cleanedTeacher.first_name} ${cleanedTeacher.last_name}`,
-                    reason
-                });
             }
         }
 

@@ -25,6 +25,7 @@
             <table class="table table-zebra w-full min-w-[600px]">
                 <thead>
                     <tr class="bg-primary text-primary-content">
+                        <th class="w-12 text-center">#</th>
                         <th>รหัส</th>
                         <th>ชื่อ</th>
                         <th>ตำแหน่ง</th>
@@ -36,12 +37,15 @@
                 </thead>
                 <tbody>
                     <tr v-if="loading">
-                        <td colspan="7" class="text-center">กำลังโหลดข้อมูล...</td>
+                        <td colspan="8" class="text-center">กำลังโหลดข้อมูล...</td>
                     </tr>
                     <tr v-if="!loading && data.length === 0">
-                        <td colspan="7" class="text-center">ไม่พบข้อมูล</td>
+                        <td colspan="8" class="text-center">ไม่พบข้อมูล</td>
                     </tr>
-                    <tr v-for="item in data" :key="item._id">
+                    <tr v-for="(item, index) in data" :key="item._id">
+                        <td class="text-center">
+                            {{ (pagination.page - 1) * pagination.limit + index + 1 }}
+                        </td>
                         <td>{{ item.userid }}</td>
                         <td>{{ item.name }}</td>
                         <td>{{ item.position }}</td>
@@ -73,9 +77,12 @@
                 class="text-center py-8 text-base-content/60 bg-base-100 rounded-lg shadow-lg">
                 ไม่พบข้อมูล
             </div>
-            <div v-for="item in data" :key="item._id" class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3">
+            <div v-for="(item, index) in data" :key="item._id" class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3">
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
+                        <span class="badge badge-neutral badge-sm mr-2">
+                        #{{ (pagination.page - 1) * pagination.limit + index + 1 }}
+                        </span>
                         <div class="badge badge-primary badge-sm mb-2">{{ item.userid }}</div>
                         <h3 class="font-bold text-lg">{{ item.name }}</h3>
                         <p class="text-sm text-base-content/70">{{ item.position }}</p>

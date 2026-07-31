@@ -45,10 +45,10 @@ export class StudentService {
       if (formData.rfid) data.append("rfid", formData.rfid);
       if (formData.guardian_phone)
         data.append("guardian_phone", formData.guardian_phone);
-
       if (formData.picture) {
         data.append("picture", formData.picture);
       }
+      data.append("no_use_face", formData.no_use_face);
 
       let config = {
         method: "post",
@@ -82,6 +82,8 @@ export class StudentService {
       if (formData.guardian_phone)
         data.append("guardian_phone", formData.guardian_phone);
       if (formData.picture) data.append("picture", formData.picture);
+      if (formData.no_use_face !== undefined)
+        data.append("no_use_face", formData.no_use_face);
 
       let config = {
         method: "patch",

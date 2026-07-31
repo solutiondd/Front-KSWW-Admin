@@ -1,5 +1,5 @@
 <template>
-    <Stats class="max-[944px]:pt-14" />
+    <Stats class="max-[944px]:pt-16" />
 </template>
 
 <script setup>

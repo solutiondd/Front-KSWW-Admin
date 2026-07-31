@@ -186,6 +186,24 @@ const getRiskStudentReport = async (params = {}) => {
   }
 };
 
+const getProgressReport = async (params) => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(`${baseUrl}report/progress`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        date: params.date,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching progress report:", error);
+    throw error;
+  }
+};
+
 export default {
   getAttendanceReport,
   getLateReport,
@@ -206,4 +224,5 @@ export default {
     }
   },
   getCommingPersonReport,
+  getProgressReport,
 };

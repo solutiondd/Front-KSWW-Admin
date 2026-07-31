@@ -18,6 +18,7 @@
         <table class="table table-zebra w-full">
             <thead>
                 <tr class="bg-primary text-primary-content">
+                    <th class="text-center w-12">#</th>
                     <th class="text-center">รหัส</th>
                     <th class="text-center">รูป</th>
                     <th>ชื่อ-สกุล</th>
@@ -29,12 +30,15 @@
             </thead>
             <tbody>
                 <tr v-if="flattenedData.length === 0">
-                    <td colspan="6" class="text-center py-8 text-base-content/60">
+                    <td colspan="8" class="text-center py-8 text-base-content/60">
                         ไม่พบข้อมูล
                     </td>
                 </tr>
-                <template v-for="group in groupedData" :key="group[0]._id">
+                <template v-for="(group, groupIndex) in groupedData" :key="group[0]._id">
                     <tr class="hover">
+                        <td class="text-center align-center">
+                            {{ ((pagination?.page || 1) - 1) * (pagination?.limit || 10) + groupIndex + 1 }}
+                        </td>
                         <td class="text-center align-center">{{ group[0].userid }}</td>
                         <td class="text-center align-center flex items-center justify-center">
                             <img v-if="group[0].picture" :src="`${imgProBaseUrl}${group[0].picture}`" alt="profile"
@@ -65,6 +69,7 @@
                         </td>
                     </tr>
                     <tr v-for="item in group.slice(1)" :key="item._id + '-' + item.missed_date" class="hover">
+                        <td></td>
                         <td class="text-center"></td>
                         <td></td>
                         <td></td>
@@ -83,7 +88,7 @@
             class="text-center py-8 text-base-content/60 bg-base-100 rounded-lg shadow-lg">
             ไม่พบข้อมูล
         </div>
-        <div v-for="group in groupedData" :key="group[0]._id + '-mobile-group'"
+        <div v-for="(group, groupIndex) in groupedData" :key="group[0]._id + '-mobile-group'"
             class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3">
             <div class="flex items-start gap-3">
                 <img v-if="group[0].picture" :src="`${imgProBaseUrl}${group[0].picture}`" alt="profile"
@@ -92,7 +97,10 @@
                     <span class="text-base font-bold">{{ getInitials(group[0].name) }}</span>
                 </div>
                 <div class="flex-1">
-                    <div class="badge badge-primary badge-sm mb-2">{{ group[0].userid }}</div>
+                    <div class="flex gap-1">
+                <div class="badge badge-neutral badge-sm mb-2">#{{ ((pagination?.page || 1) - 1) * (pagination?.limit || 10) + groupIndex + 1 }}</div>
+                <div class="badge badge-primary badge-sm mb-2">{{ group[0].userid }}</div>
+            </div>
                     <h3 class="font-bold text-md">{{ group[0].name }}</h3>
                     <p class="text-sm text-base-content/70">{{ group[0].position }}</p>
                 </div>

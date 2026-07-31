@@ -3,7 +3,7 @@
         <SideBar ref="sidebarRef" />
         <div class="flex-1 flex flex-col">
             <Navbar @toggleMobileMenu="handleToggleMobileMenu" />
-            <main class="flex-1 p-6">
+            <main class="flex-1 p-2 min-[410px]:p-5">
                 <router-view />
             </main>
         </div>

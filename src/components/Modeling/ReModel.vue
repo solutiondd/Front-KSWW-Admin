@@ -4,7 +4,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
         </svg>
-        {{ isProcessing ? 'กำลังประมวลผล...' : 'Re-modeling' }}
+        <span class="button-text">{{ isProcessing ? 'กำลังประมวลผล...' : 'Re-modeling' }}</span>
     </button>
 </template>
 
@@ -75,3 +75,11 @@ const handleRemodeling = async () => {
 </script>
 
 <style scoped></style>
+
+<style scoped>
+@media (max-width: 524px) {
+    .button-text {
+        display: none;
+    }
+}
+</style>

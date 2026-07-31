@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6 max-[944px]:pt-14">
+    <div class="space-y-6 max-[944px]:pt-16">
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <h2 class="text-xl sm:text-2xl font-bold text-white">จัดการนักเรียน</h2>
             <div v-if="auth.user?.role !== 'viewer' && auth.user?.role !== 'discipline'"
@@ -245,7 +245,8 @@ const mapStudentRow = (student) => ({
     score: Number.isFinite(Number(student.score)) ? Number(student.score) : 100,
     phone: student.phone || '-',
     picture: normalizeImagePath(student.picture),
-    has_password: student.has_password
+    has_password: student.has_password,
+    no_use_face: student.no_use_face
 })
 
 const openDetailModal = (student) => {
@@ -364,12 +365,12 @@ const fetchStudents = async () => {
         const isSearching = !!searchUserid.value.trim()
 
         const response = await studentService.getStudents(
-    (useEmptyGradeClassroom || isSearching) ? '' : selectedGrade.value,
-    (useEmptyGradeClassroom || isSearching) ? '' : selectedClassroom.value,
-    userid,
-    name,
-    effectiveLineConnectFilter
-)
+            (useEmptyGradeClassroom || isSearching) ? '' : selectedGrade.value,
+            (useEmptyGradeClassroom || isSearching) ? '' : selectedClassroom.value,
+            userid,
+            name,
+            effectiveLineConnectFilter
+        )
         if (response.message === 'Success' && response.data) {
             students.value = response.data.map(mapStudentRow)
             if (response.data.length > 0) {
@@ -386,7 +387,7 @@ const fetchStudents = async () => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถโหลดข้อมูลนักเรียนได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถโหลดข้อมูลนักเรียนได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app').removeAttribute('aria-hidden')
@@ -458,13 +459,13 @@ const handleCreateSuccess = async (formData) => {
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',
-            text: 'ไม่สามารถเพิ่มนักเรียนได้',
+            text: error?.response?.data?.error || error?.message || 'ไม่สามารถเพิ่มนักเรียนได้',
             confirmButtonColor: '#2563eb',
             didOpen: () => {
                 document.getElementById('app')?.removeAttribute('aria-hidden')
             }
         })
-        if (onError) onError('other')
+        if (onError) onError(error)
     } finally {
         loading.value = false
     }

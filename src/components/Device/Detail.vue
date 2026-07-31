@@ -10,8 +10,8 @@
                         <div class="font-semibold">{{ currentDevice.serial_number || '-' }}</div>
                     </div>
                     <div class="bg-base-200 rounded-lg p-3">
-                        <div class="text-xs text-base-content/60">Model</div>
-                        <div class="font-semibold">{{ currentDevice.modelname || '-' }}</div>
+                        <div class="text-xs text-base-content/60">ประเภทอุปกรณ์</div>
+                        <div class="font-semibold">{{ currentDevice.device_type || '-' }}</div>
                     </div>
                     <div class="bg-base-200 rounded-lg p-3">
                         <div class="text-xs text-base-content/60">IP Address</div>

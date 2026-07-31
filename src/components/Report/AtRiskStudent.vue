@@ -1,6 +1,14 @@
 <template>
     <div class="space-y-4">
         <div class="flex justify-end items-center">
+            <button class="btn btn-sm btn-success mr-2" :disabled="loadingExport" @click="exportRiskStudentsToExcel">
+                <span v-if="loadingExport" class="loading loading-spinner loading-xs mr-2"></span>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                ส่งออก Excel
+            </button>
             <button class="btn btn-sm btn-primary" :disabled="loading" @click="fetchRiskStudents">
                 <span v-if="loading" class="loading loading-spinner loading-xs mr-2"></span>
                 รีเฟรช
@@ -20,17 +28,24 @@
                         <th class="text-center">โปรไฟล์</th>
                         <th>ชื่อ-สกุล</th>
                         <th class="text-center">ชั้น/ห้อง</th>
-                        <th class="text-center">คะแนนเสี่ยง</th>
+                        <th class="text-center cursor-pointer select-none hover:bg-primary-focus transition-colors" @click="toggleSortScore">
+                            <div class="inline-flex items-center gap-1 justify-center">
+                                <span>คะแนนเสี่ยง</span>
+                                <span v-if="sortDirection === 'asc'">▲</span>
+                                <span v-else-if="sortDirection === 'desc'">▼</span>
+                                <span v-else class="opacity-40">↕</span>
+                            </div>
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="loading">
                         <td colspan="6" class="text-center py-8 text-base-content/60">กำลังโหลดข้อมูล...</td>
                     </tr>
-                    <tr v-else-if="riskStudents.length === 0">
+                    <tr v-else-if="sortedRiskStudents.length === 0">
                         <td colspan="6" class="text-center py-8 text-base-content/60">ไม่พบข้อมูล</td>
                     </tr>
-                    <tr v-for="(item, index) in riskStudents" :key="item._id || item.userid" class="hover">
+                    <tr v-for="(item, index) in sortedRiskStudents" :key="item._id || item.userid" class="hover">
                         <td class="text-center">{{ index + 1 }}</td>
                         <td class="text-center">{{ item.userid || '-' }}</td>
                         <td class="text-center">
@@ -65,12 +80,12 @@
             <div v-if="loading" class="text-center py-8 text-base-content/60 bg-base-100 rounded-lg shadow-lg">
                 กำลังโหลดข้อมูล...
             </div>
-            <div v-else-if="riskStudents.length === 0"
+            <div v-else-if="sortedRiskStudents.length === 0"
                 class="text-center py-8 text-base-content/60 bg-base-100 rounded-lg shadow-lg">
                 ไม่พบข้อมูล
             </div>
 
-            <div v-for="(item, index) in riskStudents" :key="item._id || item.userid"
+            <div v-for="(item, index) in sortedRiskStudents" :key="item._id || item.userid"
                 class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3">
                 <div class="flex items-start gap-3">
                     <div v-if="item.picture" class="avatar">
@@ -117,8 +132,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import reportApi from "../../api/report.js";
 import { formatGradeClassroomDisplay, mapGradeDisplay } from '../../utils/gradeSystem';
 
@@ -127,7 +144,37 @@ const router = useRouter();
 
 const riskStudents = ref([]);
 const loading = ref(false);
+const loadingExport = ref(false);
 const errorMessage = ref("");
+
+const sortDirection = ref('desc');
+
+const toggleSortScore = () => {
+    if (sortDirection.value === 'desc') {
+        sortDirection.value = 'asc';
+    } else if (sortDirection.value === 'asc') {
+        sortDirection.value = null;
+    } else {
+        sortDirection.value = 'desc';
+    }
+};
+
+const sortedRiskStudents = computed(() => {
+    if (!sortDirection.value) {
+        return riskStudents.value;
+    }
+
+    return [...riskStudents.value].sort((a, b) => {
+        const scoreA = Number(a.score) ?? -Infinity;
+        const scoreB = Number(b.score) ?? -Infinity;
+
+        if (sortDirection.value === 'asc') {
+            return scoreA - scoreB;
+        } else {
+            return scoreB - scoreA;
+        }
+    });
+});
 
 const fetchRiskStudents = async () => {
     loading.value = true;
@@ -185,6 +232,71 @@ const openConductByStudent = (item) => {
             ...(name ? { name } : {}),
         },
     });
+};
+
+const exportRiskStudentsToExcel = async () => {
+    if (loadingExport.value) return;
+    loadingExport.value = true;
+
+    try {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('AtRiskStudents');
+
+        worksheet.addRow(['รายงานนักเรียนกลุ่มเสี่ยง']);
+        worksheet.mergeCells('A1:F1');
+        worksheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getCell('A1').font = { bold: true };
+
+        const headers = ['ลำดับ', 'รหัส', 'ชื่อ-สกุล', 'ชั้น/ห้อง', 'คะแนนเสี่ยง', 'ระดับความเสี่ยง'];
+        worksheet.addRow(headers);
+
+        sortedRiskStudents.value.forEach((item, index) => {
+            const score = Number(item.score);
+            let riskLevel = '-';
+
+            if (!Number.isNaN(score)) {
+                if (score >= 41 && score <= 60) riskLevel = 'เฝ้าระวัง';
+                else if (score >= 21 && score <= 40) riskLevel = 'เสี่ยงปานกลาง';
+                else if (score >= 1 && score <= 20) riskLevel = 'เสี่ยงสูง';
+                else if (score <= 0) riskLevel = 'วิกฤต';
+            }
+
+            worksheet.addRow([
+                index + 1,
+                item.userid || '-',
+                item.name || '-',
+                formatClassroom(item),
+                item.score ?? '-',
+                riskLevel,
+            ]);
+        });
+
+        worksheet.columns = [
+            { width: 10 },
+            { width: 16 },
+            { width: 30 },
+            { width: 18 },
+            { width: 14 },
+            { width: 18 },
+        ];
+
+        worksheet.getRow(2).font = { bold: true };
+        worksheet.getRow(2).alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getColumn(1).alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getColumn(2).alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getColumn(4).alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getColumn(5).alignment = { horizontal: 'center', vertical: 'middle' };
+        worksheet.getColumn(6).alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const today = new Date().toISOString().split('T')[0];
+        const buffer = await workbook.xlsx.writeBuffer();
+        saveAs(new Blob([buffer], { type: 'application/octet-stream' }), `AtRiskStudents_${today}.xlsx`);
+    } catch (error) {
+        alert('เกิดข้อผิดพลาดในการส่งออก Excel');
+        console.error('Error exporting at risk students report:', error);
+    } finally {
+        loadingExport.value = false;
+    }
 };
 
 onMounted(fetchRiskStudents);
