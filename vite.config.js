@@ -7,10 +7,11 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: "autoUpdate",
+      injectRegister: false,
       workbox: {
-        cleanupOutdatedCaches: true,
         clientsClaim: true,
         skipWaiting: true,
+        cleanupOutdatedCaches: true,
       },
       manifest: {
         name: "KSWW School Admin",

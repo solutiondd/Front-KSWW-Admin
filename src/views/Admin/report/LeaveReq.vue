@@ -11,7 +11,7 @@
             </div>
         </div>
         <div class="bg-white rounded-lg shadow p-6 mb-6 space-y-4">
-            <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="form-control">
                     <label class="label py-1">
                         <span class="label-text text-sm font-medium">ค้นหารหัส</span>
@@ -33,7 +33,7 @@
                     </select>
                 </div>
 
-                <div v-if="residentRole !== 'teacher'" class="form-control">
+                <!-- <div v-if="residentRole !== 'teacher'" class="form-control">
                     <label class="label py-1">
                         <span class="label-text text-sm font-medium">ประเภท</span>
                     </label>
@@ -42,7 +42,7 @@
                         <option value="student">นักเรียน</option>
                         <option value="teacher">ครู</option>
                     </select>
-                </div>
+                </div> -->
 
                 <div v-if="residentRole !== 'teacher'" class="form-control">
                     <label class="label py-1">

@@ -75,9 +75,9 @@
 
         <TeacherTable :teachers="paginatedTeachers" :loading="loading" :departmentFilter="filterDepartment"
             :positionFilter="filterPosition" :departments="departments" :positions="positions"
-            :currentPage="currentPage" :itemsPerPage="itemsPerPage" @filterDepartment="handleFilterDepartment"
-            @filterPosition="handleFilterPosition" @edit="openEditModal" @delete="openDeleteModal"
-            @reset="openRePasswordModal" @detail="openDetailModal" />
+            :currentPage="currentPage" :itemsPerPage="itemsPerPage" :showApiNumber="showApiNumberColumn"
+            @filterDepartment="handleFilterDepartment" @filterPosition="handleFilterPosition" @edit="openEditModal"
+            @delete="openDeleteModal" @reset="openRePasswordModal" @detail="openDetailModal" />
 
         <div v-if="totalPages > 1" class="flex flex-col items-center gap-2">
             <div class="flex justify-center">
@@ -132,6 +132,7 @@ import { TeacherService } from '../../api/teacher'
 import { DepartmentService } from '../../api/department'
 import { PositionService } from '../../api/position'
 import { useAuthStore } from '../../stores/auth'
+import featureFlags from '../../config/featureFlags'
 
 const importModalRef = ref(null)
 const openImportModal = () => {
@@ -179,6 +180,7 @@ const updateModalRef = ref(null)
 const createModalRef = ref(null)
 const deleteModalRef = ref(null)
 const rePasswordModalRef = ref(null)
+const showApiNumberColumn = featureFlags.teacher?.enableApiNumberColumn === true
 
 const totalItems = computed(() => teachers.value.length)
 
@@ -228,6 +230,7 @@ const fetchTeachers = async () => {
                 name: teacher.name,
                 code: teacher.userid,
                 rfid: teacher.rfid,
+                note: teacher.note || '-',
                 department: teacher.department || '-',
                 position: teacher.position || '-',
                 email: teacher.userid + '@ksww.ac.th',

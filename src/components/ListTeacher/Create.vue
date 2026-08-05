@@ -146,6 +146,15 @@
                             <option value="พักงาน">พักงาน</option>
                         </select>
                     </div>
+
+                    <div class="form-control w-full">
+                        <label class="label">
+                            <span class="label-text">รายละเอียดเพิ่มเติม <span
+                                    class="text-gray-500">(ไม่บังคับ)</span></span>
+                        </label>
+                        <input v-model="formData.note" type="text" class="input input-bordered w-full"
+                            autocomplete="off" />
+                    </div>
                 </div>
 
                 <div class="modal-action">
@@ -170,6 +179,8 @@ const fileName = ref('')
 const fileError = ref('')
 const useridError = ref('')
 const rfidError = ref('')
+let faceapiLib = null
+let tinyFaceModelReady = false
 
 const positionQuery = ref('')
 const positionOpen = ref(false)
@@ -187,6 +198,7 @@ const formData = ref({
     first_name: '',
     last_name: '',
     rfid: '',
+    note: '',
     position: '',
     department: '',
     status: '',
@@ -297,6 +309,7 @@ const openModal = () => {
         first_name: '',
         last_name: '',
         rfid: '',
+        note: '',
         position: '',
         department: '',
         status: '',
@@ -322,6 +335,7 @@ const closeModal = () => {
         first_name: '',
         last_name: '',
         rfid: '',
+        note: '',
         position: '',
         department: '',
         status: '',
@@ -336,6 +350,29 @@ const closeModal = () => {
     departmentQuery.value = ''
     positionOpen.value = false
     departmentOpen.value = false
+}
+
+const ensureTinyFaceDetectorModel = async () => {
+    if (!faceapiLib) {
+        faceapiLib = await import('face-api.js')
+    }
+
+    if (!tinyFaceModelReady) {
+        await faceapiLib.nets.tinyFaceDetector.loadFromUri('/models')
+        tinyFaceModelReady = true
+    }
+
+    return faceapiLib
+}
+
+const detectFace = async (file) => {
+    const faceapi = await ensureTinyFaceDetectorModel()
+    const img = await faceapi.bufferToImage(file)
+    const detections = await faceapi.detectAllFaces(
+        img,
+        new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })
+    )
+    return detections.length > 0
 }
 
 
@@ -405,7 +442,19 @@ const handleFileChange = async (event) => {
         }
         try {
             const resizedBlob = await resizeImage(file, 70, 450);
-            formData.value.picture = new File([resizedBlob], file.name, { type: 'image/jpeg' });
+            const resizedFile = new File([resizedBlob], file.name, { type: 'image/jpeg' });
+            const hasFace = await detectFace(resizedFile)
+
+            if (!hasFace) {
+                fileError.value = 'ไม่พบใบหน้าในรูป กรุณาเลือกรูปที่เห็นใบหน้าชัดเจน'
+                formData.value.picture = null
+                previewImage.value = ''
+                fileName.value = ''
+                event.target.value = ''
+                return
+            }
+
+            formData.value.picture = resizedFile;
             fileName.value = file.name;
             const reader = new FileReader();
             reader.onload = (e) => {

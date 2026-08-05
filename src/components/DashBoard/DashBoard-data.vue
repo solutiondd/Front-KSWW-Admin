@@ -15,7 +15,7 @@
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
                 <h3 class="font-bold text-lg mb-4">รายการเข้าเรียน{{ attendanceRole === 'teacher' ? 'ครู' : 'นักเรียน'
-                    }} วันที่ {{ displayDate }}</h3>
+                }} วันที่ {{ displayDate }}</h3>
                 <div v-if="attendanceRole === 'student'">
                     <Attendance :role="'student'" :date="selectedDate" v-if="residentRole !== 'teacher'" />
                     <Attendance :role="'student'" :date="selectedDate" v-else :fixed-grade="localGrade"
@@ -41,14 +41,18 @@
                     {{ displayDate }}</h3>
 
                 <div v-if="lateRole === 'student'">
-                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules" :timeSortOrder="lateTimeSortOrder"
-                        grade="student" :filters="{ start: selectedDate, end: selectedDate, role: 'student' }"
-                        :hide-export="true" @page-change="handleLatePageChange" @toggle-time-sort="handleToggleLateTimeSort" summaryTextColor="text-black" />
+                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules"
+                        :timeSortOrder="lateTimeSortOrder" grade="student"
+                        :filters="{ start: selectedDate, end: selectedDate, role: 'student' }" :hide-export="true"
+                        @page-change="handleLatePageChange" @toggle-time-sort="handleToggleLateTimeSort"
+                        summaryTextColor="text-black" />
                 </div>
                 <div v-else>
-                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules" :timeSortOrder="lateTimeSortOrder"
+                    <LateTable :data="lateData" :pagination="latePagination" :allowance-rules="allowanceRules"
+                        :timeSortOrder="lateTimeSortOrder"
                         :filters="{ start: selectedDate, end: selectedDate, role: 'teacher' }" :hide-export="true"
-                        @page-change="handleLatePageChange" @toggle-time-sort="handleToggleLateTimeSort" summaryTextColor="text-black" />
+                        @page-change="handleLatePageChange" @toggle-time-sort="handleToggleLateTimeSort"
+                        summaryTextColor="text-black" />
                 </div>
             </div>
             <form method="dialog" class="modal-backdrop">
@@ -61,8 +65,8 @@
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
-                <h3 class="font-bold text-lg mb-4">รายการที่ไม่ได้สแกน{{ missedRole === 'teacher' ? 'ครู' : 'นักเรียน'
-                    }} วันที่
+                <h3 class="font-bold text-lg mb-4">รายการที่ขาด{{ missedRole === 'teacher' ? 'ครู' : 'นักเรียน'
+                }} วันที่
                     {{ displayDate }}</h3>
 
                 <MissedTable :data="missedData" :pagination="missedPagination" :hide-export="true"
@@ -74,31 +78,40 @@
             </form>
         </dialog>
 
-        <dialog ref="leaveModal" class="modal">
+        <dialog ref="leaveModal" class="modal" @close="handleLeaveModalClose">
             <div class="modal-box max-w-7xl p-2 min-[481px]:p-6">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
-                <h3 class="font-bold text-lg mb-4">รายการลา{{ leaveRole === 'teacher' ? 'ครู' : 'นักเรียน' }} วันที่
+                <h3 class="font-bold text-lg">รายการลา{{ leaveRole === 'teacher' ? 'ครู' : 'นักเรียน' }} วันที่
                     {{ displayDate }}</h3>
+                <p class="text-xs sm:text-sm text-gray-600 mb-3">
+                    หมายเหตุ: จำนวนรายการหน้านี้อาจไม่เท่ากับตัวเลขหน้าหลัก
+                    เนื่องจากบางคนลาในระบบไว้แต่ยังมาเรียน/สแกนเข้าเรียนได้
+                </p>
 
-                <LeaveRequest :filters="leaveFilters" :hide-export="true" />
+                <LeaveRequest v-if="leaveTableVisible" :filters="leaveFilters" :hide-export="true" />
             </div>
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
             </form>
         </dialog>
 
-        <dialog ref="activityModal" class="modal">
+        <dialog ref="activityModal" class="modal" @close="handleActivityModalClose">
             <div class="modal-box max-w-7xl p-2 min-[481px]:p-6">
                 <form method="dialog">
                     <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
                 </form>
-                <h3 class="font-bold text-lg mb-4">รายการกิจกรรม{{ activityRole === 'teacher' ? 'ครู' : 'นักเรียน' }}
+                <h3 class="font-bold text-lg">รายการกิจกรรมนักเรียน
                     วันที่
                     {{ displayDate }}</h3>
+                <p class="text-xs sm:text-sm text-gray-600 mb-3">
+                    หมายเหตุ: จำนวนรายการหน้านี้อาจไม่เท่ากับตัวเลขหน้าหลัก
+                    เนื่องจากบางคนลาในระบบไว้แต่ยังมาเรียน/สแกนเข้าเรียนได้
+                </p>
 
-                <ActivityTable :filters="activityFilters" :hide-export="true" />
+                <ActivityTable v-if="activityTableVisible" :filters="activityFilters" :hide-export="true"
+                    :hide-page-size-selector="true" :default-page-limit="100" summaryTextColor="text-black" />
             </div>
             <form method="dialog" class="modal-backdrop">
                 <button>close</button>
@@ -150,7 +163,7 @@
                         <h4 class="card-title">นักเรียน</h4>
                         <div class="stats stats-vertical lg:stats-horizontal bg-base-100 w-full student-bg">
                             <div class="stat relative">
-                                <div class="stat-title">เข้า</div>
+                                <div class="stat-title">ตรงเวลา</div>
                                 <div class="stat-value text-primary">{{ student.total - student.late }}</div>
                                 <div class="stat-desc absolute bottom-2 right-2">
                                     <button @click="showAttendanceTable" class="btn btn-xs btn-primary btn-plain">
@@ -186,7 +199,7 @@
                                 </div>
                             </div>
                             <div class="stat relative border-l pl-4">
-                                <div class="stat-title">ไม่ได้สแกน</div>
+                                <div class="stat-title">ขาด</div>
                                 <div class="stat-value text-error">{{ studentAbsent }}</div>
                                 <div class="stat-desc absolute bottom-2 right-2">
                                     <button @click="showStudentMissedTable" class="btn btn-xs btn-error btn-plain">
@@ -205,7 +218,7 @@
                         <h4 class="card-title">ครู</h4>
                         <div class="stats stats-vertical lg:stats-horizontal bg-base-100 w-full teacher-bg">
                             <div class="stat relative">
-                                <div class="stat-title">เข้า</div>
+                                <div class="stat-title">ตรงเวลา</div>
                                 <div class="stat-value text-secondary">{{ teacher.total - teacher.late }}</div>
                                 <div class="stat-desc absolute bottom-2 right-2">
                                     <button @click="showTeacherAttendanceTable"
@@ -223,26 +236,8 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="stat relative border-l pl-4">
-                                <div class="stat-title">ลา</div>
-                                <div class="stat-value text-warning">{{ teacherLeave }}</div>
-                                <div class="stat-desc absolute bottom-2 right-2">
-                                    <button @click="showTeacherLeaveTable" class="btn btn-xs btn-warning btn-plain">
-                                        คลิก
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="stat relative border-l pl-4">
-                                <div class="stat-title">กิจกรรม</div>
-                                <div class="stat-value text-info">{{ teacherActivity }}</div>
-                                <div class="stat-desc absolute bottom-2 right-2">
-                                    <button @click="showTeacherActivityTable" class="btn btn-xs btn-info btn-plain">
-                                        คลิก
-                                    </button>
-                                </div>
-                            </div>
                             <div class="stat group relative border-l pl-4" ref="teacherAbsentStatRef">
-                                <div class="stat-title">ไม่ได้สแกน</div>
+                                <div class="stat-title">ขาด</div>
                                 <div class="stat-value text-error">{{ teacherAbsent }}</div>
                                 <div class="stat-desc absolute bottom-2 right-2">
                                     <button @click="showTeacherMissedTable" class="btn btn-xs btn-error btn-plain">
@@ -273,7 +268,7 @@
                         <h4 class="card-title">นักเรียน</h4>
                         <div class="stats stats-vertical lg:stats-horizontal bg-base-100 w-full">
                             <div class="stat relative">
-                                <div class="stat-title">เข้า</div>
+                                <div class="stat-title">ตรงเวลา</div>
                                 <div class="stat-value text-primary">{{ student.total - student.late }}</div>
                                 <div class="stat-desc absolute bottom-2 right-2">
                                     <button @click="showAttendanceTable" class="btn btn-xs btn-primary btn-plain">
@@ -309,7 +304,7 @@
                                 </div>
                             </div>
                             <div class="stat relative border-l pl-4">
-                                <div class="stat-title">ไม่ได้สแกน</div>
+                                <div class="stat-title">ขาด</div>
                                 <div class="stat-value text-error">{{ studentAbsent }}</div>
                                 <div class="stat-desc absolute bottom-2 right-2">
                                     <button @click="showStudentMissedTable" class="btn btn-xs btn-error btn-plain">
@@ -330,8 +325,6 @@ import { ref, onMounted, computed } from 'vue'
 import lottie from 'lottie-web'
 import reportApi from '../../api/report.js'
 import { ClassRoomService } from '../../api/class-room.js'
-import { LeaveService } from '../../api/leave'
-import { ActivityService } from '../../api/activity'
 import LateTable from '../Report/LateTable.vue'
 import MissedTable from '../Report/MissedTable.vue'
 import LeaveRequest from '../Report/LeaveRequest.vue'
@@ -372,6 +365,8 @@ const lateModal = ref(null)
 const missedModal = ref(null)
 const leaveModal = ref(null)
 const activityModal = ref(null)
+const activityTableVisible = ref(false)
+const leaveTableVisible = ref(false)
 const attendanceData = ref([])
 const attendancePage = ref(1)
 const attendanceTotalItems = ref(0)
@@ -388,7 +383,6 @@ const lateTotalPages = ref(0)
 const lateRole = ref('student')
 const lateTimeSortOrder = ref('desc')
 const leaveRole = ref('student')
-const activityRole = ref('student')
 const missedData = ref([])
 const missedAllData = ref([])
 const missedPage = ref(1)
@@ -401,11 +395,8 @@ const classrooms = ref([])
 const studentLeave = ref(0)
 const teacherLeave = ref(0)
 const studentActivity = ref(0)
-const teacherActivity = ref(0)
 
 const classRoomService = new ClassRoomService()
-const leaveService = new LeaveService()
-const activityService = new ActivityService()
 
 const residentRole = ref(localStorage.getItem('residentRole') || '')
 const localGrade = ref(localStorage.getItem('grade') || '')
@@ -462,9 +453,7 @@ const studentAbsent = computed(() => Math.max(
 ))
 const teacherAbsent = computed(() => Math.max(
     (totals.value.total_teachers || 0) -
-    (teacher.value.total || 0) -
-    (teacherLeave.value || 0) -
-    (teacherActivity.value || 0),
+    (teacher.value.total || 0),
     0
 ))
 const leaveFilters = computed(() => ({
@@ -478,7 +467,7 @@ const leaveFilters = computed(() => ({
 const activityFilters = computed(() => ({
     start_date: (selectedDate.value || '').toString(),
     end_date: (selectedDate.value || '').toString(),
-    role: activityRole.value,
+    // role: 'student',
     search: '',
     status: '',
     activity_name: '',
@@ -491,72 +480,6 @@ const showCombinedStat = ref(false)
 const showStudentAbsentStat = ref(false)
 const showTeacherAbsentStat = ref(false)
 
-async function fetchLeaveSummaryByDate() {
-    try {
-        const filters = {
-            start_date: selectedDate.value,
-            end_date: selectedDate.value,
-            status: 'approved',
-        }
-
-        if (residentRole.value === 'teacher' && localGrade.value && localClassroom.value) {
-            filters.grade = localGrade.value
-            filters.classroom = localClassroom.value
-        }
-
-        const response = await leaveService.getLeaveRequests(filters)
-        let data = response?.data || response || []
-
-        if (residentRole.value === 'teacher' && localGrade.value && localClassroom.value) {
-            data = data.filter(
-                (item) =>
-                    item.user_id?.grade === localGrade.value &&
-                    String(item.user_id?.classroom ?? '') === String(localClassroom.value)
-            )
-        }
-
-        const pendingLeaves = data.filter(item => !item.attendance || item.attendance.length === 0)
-
-        studentLeave.value = pendingLeaves.filter((item) => item.user_id?.role === 'student').length
-        teacherLeave.value = pendingLeaves.filter((item) => item.user_id?.role === 'teacher').length
-    } catch (e) {
-        console.error('Daily leave summary error', e)
-        studentLeave.value = 0
-        teacherLeave.value = 0
-    }
-}
-
-async function fetchActivitySummaryByDate() {
-    try {
-        const filters = {}
-
-        if (residentRole.value === 'teacher' && localGrade.value && localClassroom.value) {
-            filters.grade = localGrade.value
-            filters.classroom = localClassroom.value
-        }
-
-        const response = await activityService.getActivities(selectedDate.value, selectedDate.value, filters)
-        let data = response?.data || response || []
-
-        if (residentRole.value === 'teacher' && localGrade.value && localClassroom.value) {
-            data = data.filter(
-                (item) =>
-                    item.user_id?.grade === localGrade.value &&
-                    String(item.user_id?.classroom ?? '') === String(localClassroom.value)
-            )
-        }
-
-        const pendingActivities = data.filter(item => !item.attendance || item.attendance.length === 0)
-
-        studentActivity.value = pendingActivities.filter((item) => item.user_id?.role === 'student').length
-        teacherActivity.value = pendingActivities.filter((item) => item.user_id?.role === 'teacher').length
-    } catch (e) {
-        console.error('Daily activity summary error', e)
-        studentActivity.value = 0
-        teacherActivity.value = 0
-    }
-}
-
 async function fetchDaily() {
     loading.value = true
     emit('dateChange', selectedDate.value)
@@ -568,13 +491,18 @@ async function fetchDaily() {
             totals.value.total_students = res.data.total_students || 0
             totals.value.total_teachers = res.data.total_teachers || 0
             const list = res.data.daily_stats || []
-            const stu = list.find(x => x.role === 'student') || { total: 0, late: 0 }
-            const tea = list.find(x => x.role === 'teacher') || { total: 0, late: 0 }
+            const stu = list.find(x => x.role === 'student') || { total: 0, late: 0, total_leave: 0, total_activity: 0 }
+            const tea = list.find(x => x.role === 'teacher') || { total: 0, late: 0, total_leave: 0, total_activity: 0 }
             student.value = { total: stu.total || 0, late: stu.late || 0 }
             teacher.value = { total: tea.total || 0, late: tea.late || 0 }
+            studentLeave.value = stu.total_leave ?? stu.leave ?? 0
+            teacherLeave.value = tea.total_leave ?? tea.leave ?? 0
+            studentActivity.value = stu.total_activity ?? stu.activity ?? 0
+        } else {
+            studentLeave.value = 0
+            teacherLeave.value = 0
+            studentActivity.value = 0
         }
-        await fetchLeaveSummaryByDate()
-        await fetchActivitySummaryByDate()
     } catch (e) {
         console.error('Daily summary error', e)
         totals.value = { total_students: 0, total_teachers: 0 }
@@ -583,7 +511,6 @@ async function fetchDaily() {
         studentLeave.value = 0
         teacherLeave.value = 0
         studentActivity.value = 0
-        teacherActivity.value = 0
     } finally {
         loading.value = false
     }
@@ -697,7 +624,7 @@ function sortLateData(data, sortOrder = 'desc') {
         }
         const timeA = getTimeInSeconds(a)
         const timeB = getTimeInSeconds(b)
-        
+
         return sortOrder === 'desc' ? timeB - timeA : timeA - timeB
     })
 }
@@ -712,7 +639,7 @@ async function showStudentLateTable() {
         loading.value = true
         lateRole.value = 'student'
         latePage.value = 1
-        
+
         let params = {
             start: selectedDate.value,
             end: selectedDate.value,
@@ -728,11 +655,11 @@ async function showStudentLateTable() {
         if (res.message === 'Success' && res.data) {
             const sorted = sortLateData(res.data || [], lateTimeSortOrder.value)
             lateAllData.value = sorted
-            
+
             lateLimit.value = 5
             lateTotalItems.value = sorted.length
             lateTotalPages.value = Math.ceil(sorted.length / lateLimit.value) || 1
-            
+
             lateData.value = sorted.slice(0, lateLimit.value)
             lateModal.value?.showModal()
         }
@@ -748,7 +675,7 @@ async function showTeacherLateTable() {
         loading.value = true
         lateRole.value = 'teacher'
         latePage.value = 1
-        
+
         let params = {
             start: selectedDate.value,
             end: selectedDate.value,
@@ -763,11 +690,11 @@ async function showTeacherLateTable() {
         if (res.message === 'Success' && res.data) {
             const sorted = sortLateData(res.data || [], lateTimeSortOrder.value)
             lateAllData.value = sorted
-            
+
             lateLimit.value = 5
             lateTotalItems.value = sorted.length
             lateTotalPages.value = Math.ceil(sorted.length / lateLimit.value) || 1
-            
+
             lateData.value = sorted.slice(0, lateLimit.value)
             lateModal.value?.showModal()
         }
@@ -840,22 +767,21 @@ async function showTeacherMissedTable() {
 
 function showStudentLeaveTable() {
     leaveRole.value = 'student'
-    leaveModal.value?.showModal()
-}
-
-function showTeacherLeaveTable() {
-    leaveRole.value = 'teacher'
+    leaveTableVisible.value = true
     leaveModal.value?.showModal()
 }
 
 function showStudentActivityTable() {
-    activityRole.value = 'student'
+    activityTableVisible.value = true
     activityModal.value?.showModal()
 }
 
-function showTeacherActivityTable() {
-    activityRole.value = 'teacher'
-    activityModal.value?.showModal()
+function handleActivityModalClose() {
+    activityTableVisible.value = false
+}
+
+function handleLeaveModalClose() {
+    leaveTableVisible.value = false
 }
 
 function handleLatePageChange(page) {

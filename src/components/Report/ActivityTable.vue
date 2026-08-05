@@ -17,62 +17,97 @@
 
         <div v-else class="bg-white rounded-lg shadow overflow-x-auto w-full">
             <table class="table table-zebra w-full text-sm">
-    <thead>
-        <tr class="bg-primary text-primary-content">
-            <th class="text-center w-12">ลำดับ</th> <!-- เพิ่มคอลัมน์ลำดับ -->
-            <th>รหัส</th>
-            <th>ชื่อ</th>
-            <th>ชั้น</th>
-            <th class="hidden min-[560px]:table-cell">กิจกรรม</th>
-            <th class="hidden md:table-cell">วันที่กิจกรรม</th>
-            <th class="hidden lg:table-cell">การเข้าเรียน</th>
-            <th class="text-center"></th>
-        </tr>
-    </thead>
-    <tbody>
-        <!-- เพิ่ม index ใน v-for -->
-        <tr v-for="(activity, index) in activities"
-            :key="activity._id || `${activity.user_id?.userid}-${activity.activity_name}`">
-            <td class="text-center text-xs min-[503px]:text-sm font-medium">{{ index + 1 }}</td> <!-- แสดง ลำดับ -->
-            <td class="text-xs min-[503px]:text-sm">{{ activity.user_id?.userid || '-' }}</td>
-            <td class="text-xs min-[503px]:text-sm">{{ activity.user_id?.name || '-' }}</td>
-            <td class="text-xs min-[503px]:text-sm">{{ formatClassroomDisplay(activity.user_id) }}</td>
-            <td class="hidden min-[560px]:table-cell">{{ activity.activity_name || '-' }}</td>
-            <td class="hidden md:table-cell">
-                {{ formatDate(activity.activity_date_start || activity.activity_date || activity.date) }}
-                <span v-if="activity.start_time" class="text-xs text-gray-500 block">
-                    ({{ formatTimeRange(activity.start_time, activity.end_time) }})
-                </span>
-            </td>
+                <thead>
+                    <tr class="bg-primary text-primary-content">
+                        <th class="text-center w-12">ลำดับ</th>
+                        <th>รหัส</th>
+                        <th>ชื่อ</th>
+                        <th>ชั้น</th>
+                        <th class="hidden min-[560px]:table-cell">กิจกรรม</th>
+                        <th class="hidden md:table-cell">วันที่กิจกรรม</th>
+                        <th class="hidden lg:table-cell">การเข้าเรียน</th>
+                        <th class="text-center"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="(activity, index) in activities"
+                        :key="activity._id || `${activity.user_id?.userid}-${activity.activity_name}`">
+                        <td class="text-center text-xs min-[503px]:text-sm font-medium">{{ ((pagination.page - 1) *
+                            pagination.limit) + index + 1 }}</td>
+                        <td class="text-xs min-[503px]:text-sm">{{ activity.user_id?.userid || '-' }}</td>
+                        <td class="text-xs min-[503px]:text-sm">{{ activity.user_id?.name || '-' }}</td>
+                        <td class="text-xs min-[503px]:text-sm">{{ formatClassroomDisplay(activity.user_id) }}</td>
+                        <td class="hidden min-[560px]:table-cell">{{ activity.activity_name || '-' }}</td>
+                        <td class="hidden md:table-cell">
+                            {{ formatDateRangeShort(activity.activity_date_start || activity.activity_date ||
+                                activity.date, activity.activity_date_end || activity.activity_date || activity.date) }}
+                            <span v-if="activity.start_time" class="text-xs text-gray-500 block">
+                                ({{ formatTimeRange(activity.start_time, activity.end_time) }})
+                            </span>
+                        </td>
 
-            <td class="hidden lg:table-cell">
-                <div
-                    :class="['badge gap-1 h-auto py-1 text-center whitespace-normal md:whitespace-nowrap', checkAttendanceStatus(activity).badgeClass]">
-                    {{ checkAttendanceStatus(activity).label }}
-                </div>
-                <div v-if="getValidAttendance(activity).length" class="text-xs text-gray-400 mt-1">
-                    สแกนล่าสุด: {{ getValidAttendance(activity)[getValidAttendance(activity).length - 1].time }} น.
-                </div>
-            </td>
+                        <td class="hidden lg:table-cell">
+                            <div
+                                :class="['badge gap-1 h-auto py-1 text-center whitespace-normal md:whitespace-nowrap', checkAttendanceStatus(activity).badgeClass]">
+                                {{ checkAttendanceStatus(activity).label }}
+                            </div>
+                            <div v-if="getValidAttendance(activity).length" class="text-xs text-gray-400 mt-1">
+                                สแกนล่าสุด: {{ getValidAttendance(activity)[getValidAttendance(activity).length -
+                                    1].time }} น.
+                            </div>
+                        </td>
 
-            <td class="text-center">
-                <button @click="openDetail(activity)" class="bg-transparent border-none shadow-none p-0"
-                    title="ดูข้อมูลเพิ่มเติม">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                        stroke="#3b82f6">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                </button>
-            </td>
-        </tr>
-        <tr v-if="!activities.length">
-            <td colspan="8" class="text-center text-gray-500 py-6">ไม่พบข้อมูลกิจกรรม</td> <!-- ปรับ colspan เป็น 8 -->
-        </tr>
-    </tbody>
-</table>
+                        <td class="text-center">
+                            <button @click="openDetail(activity)" class="bg-transparent border-none shadow-none p-0"
+                                title="ดูข้อมูลเพิ่มเติม">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="#3b82f6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr v-if="!activities.length">
+                        <td colspan="8" class="text-center text-gray-500 py-6">ไม่พบข้อมูลกิจกรรม</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 space-y-3">
+            <div v-if="!hidePageSizeSelector" class="flex items-center gap-2">
+                <span class="text-sm text-white/70">แสดง</span>
+                <select v-model.number="pageLimit" class="select select-sm select-bordered w-24">
+                    <option v-for="option in pageLimitOptions" :key="option" :value="option">{{ option }}</option>
+                </select>
+                <span class="text-sm text-white/70">รายการ/หน้า</span>
+            </div>
+
+            <div v-if="pagination.total_pages > 1" class="flex justify-center">
+                <div class="join bg-white">
+                    <button class="join-item btn btn-sm bg-transparent border-none"
+                        @click="changePage(pagination.page - 1)" :disabled="pagination.page === 1">
+                        ‹
+                    </button>
+                    <template v-for="page in displayedPages" :key="page">
+                        <button class="join-item btn btn-sm border-none"
+                            :class="[page === pagination.page ? 'bg-base-content/20 font-bold' : 'bg-transparent']"
+                            @click="changePage(page)">
+                            {{ page }}
+                        </button>
+                    </template>
+                    <button class="join-item btn btn-sm bg-transparent border-none"
+                        @click="changePage(pagination.page + 1)" :disabled="pagination.page === pagination.total_pages">
+                        ›
+                    </button>
+                </div>
+            </div>
+            <div v-if="pagination.total_pages > 1" class="text-center text-sm" :class="summaryTextColor">
+                ทั้งหมด {{ pagination.total }} รายการ (หน้า {{ pagination.page }} / {{ pagination.total_pages }})
+            </div>
         </div>
 
         <ActivityDetail ref="activityDetailRef" />
@@ -80,7 +115,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { ActivityService } from '../../api/activity';
@@ -105,6 +140,18 @@ const props = defineProps({
         type: Boolean,
         default: false,
     },
+    hidePageSizeSelector: {
+        type: Boolean,
+        default: false,
+    },
+    defaultPageLimit: {
+        type: Number,
+        default: 100,
+    },
+    summaryTextColor: {
+        type: String,
+        default: 'text-white/70',
+    },
 });
 
 const activityService = new ActivityService();
@@ -112,6 +159,14 @@ const loading = ref(false);
 const loadingExport = ref(false);
 const activities = ref([]);
 const activityDetailRef = ref(null);
+const pageLimitOptions = [20, 50, 100, 200];
+const pageLimit = ref(props.defaultPageLimit || 100);
+const pagination = ref({
+    total: 0,
+    page: 1,
+    limit: props.defaultPageLimit || 100,
+    total_pages: 1,
+});
 
 const residentRole = localStorage.getItem('residentRole') || '';
 const teacherGrade = localStorage.getItem('grade') || '';
@@ -133,6 +188,28 @@ const formatStatus = (status) => {
     return status;
 };
 
+const displayedPages = computed(() => {
+    const pages = [];
+    const { page, total_pages } = pagination.value;
+    if (!total_pages || total_pages < 2) return [1];
+
+    let start = Math.max(1, page - 2);
+    let end = Math.min(total_pages, page + 2);
+
+    if (end - start < 4) {
+        if (start === 1) {
+            end = Math.min(total_pages, start + 4);
+        } else if (end === total_pages) {
+            start = Math.max(1, end - 4);
+        }
+    }
+
+    for (let i = start; i <= end; i += 1) {
+        pages.push(i);
+    }
+    return pages;
+});
+
 const getStatusBadgeClass = (status) => {
     const value = String(status || '').toLowerCase();
     if (value === 'participated' || value === 'joined' || status === 'เข้าร่วม') return 'badge-success text-success-content';
@@ -150,6 +227,34 @@ const formatDate = (date) => {
         month: 'short',
         year: 'numeric',
     }).format(d);
+};
+
+const formatDateShort = (date) => {
+    if (!date) return '-';
+    const d = new Date(date);
+    return new Intl.DateTimeFormat('th-TH', {
+        day: '2-digit',
+        month: 'short',
+    }).format(d);
+};
+
+const formatDateRangeShort = (startDate, endDate) => {
+    if (!startDate && !endDate) return '-';
+
+    const start = startDate || endDate;
+    const end = endDate || startDate;
+    if (!start || !end) return '-';
+
+    const startShort = formatDateShort(start);
+    const endShort = formatDateShort(end);
+    const startFull = formatDate(start);
+    const endFull = formatDate(end);
+
+    if (startFull === endFull) {
+        return startFull;
+    }
+
+    return `${startShort} - ${endShort}`;
 };
 
 const getValidAttendance = (req) => {
@@ -319,6 +424,40 @@ const extractRows = (response) => {
     return [];
 };
 
+const extractPagination = (response, rowCount) => {
+    if (Array.isArray(response)) {
+        return {
+            total: rowCount,
+            page: 1,
+            limit: rowCount || pageLimit.value,
+            total_pages: 1,
+        };
+    }
+
+    const total = Number(
+        response?.total_items ??
+        rowCount ??
+        0
+    );
+    const page = Number(response?.page ?? response?.pagination?.page ?? 1);
+    const limit = Number(response?.limit ?? response?.pagination?.limit ?? pageLimit.value);
+    const totalPagesByApi = Number(response?.total_pages ?? response?.pagination?.total_pages ?? 0);
+    const calculatedTotalPages = limit > 0 ? Math.max(1, Math.ceil(total / limit)) : 1;
+
+    return {
+        total,
+        page,
+        limit,
+        total_pages: totalPagesByApi > 0 ? totalPagesByApi : calculatedTotalPages,
+    };
+};
+
+const changePage = (newPage) => {
+    if (newPage < 1 || newPage > pagination.value.total_pages || newPage === pagination.value.page) return;
+    pagination.value.page = newPage;
+    loadActivities();
+};
+
 const loadActivities = async () => {
     loading.value = true;
     try {
@@ -334,6 +473,10 @@ const loadActivities = async () => {
             filters.activity_name = props.filters.activity_name;
         }
 
+        if (props.filters.role) {
+            filters.role = props.filters.role;
+        }
+
         if (props.filters.grade) {
             filters.grade = props.filters.grade;
         }
@@ -343,7 +486,7 @@ const loadActivities = async () => {
         }
 
         const search = String(props.filters.search || '').trim();
-        if (search && /^\d+$/.test(search)) {
+        if (search) {
             filters.userid = search;
         }
 
@@ -352,41 +495,43 @@ const loadActivities = async () => {
             filters.classroom = teacherClassroom;
         }
 
+        filters.page = pagination.value.page;
+        filters.limit = pageLimit.value;
+
         const response = await activityService.getActivities(startDate, endDate, filters);
         let data = extractRows(response);
 
-        if (props.filters.role) {
-            data = data.filter((item) => item.user_id?.role === props.filters.role);
-        }
-
-        if (search) {
-            const keyword = search.toLowerCase();
-            data = data.filter(
-                (item) =>
-                    item.user_id?.name?.toLowerCase().includes(keyword) ||
-                    item.user_id?.userid?.toLowerCase().includes(keyword) ||
-                    item.activity_name?.toLowerCase().includes(keyword)
-            );
-        }
-
-        if (residentRole === 'teacher' && teacherGrade && teacherClassroom) {
-            data = data.filter(
-                (item) =>
-                    item.user_id?.grade === teacherGrade &&
-                    item.user_id?.classroom === teacherClassroom
-            );
-        }
-
         activities.value = data;
+        pagination.value = extractPagination(response, data.length);
+        pageLimit.value = pagination.value.limit || pageLimit.value;
     } catch (error) {
         console.error('Error loading activities:', error);
         activities.value = [];
+        pagination.value = {
+            total: 0,
+            page: 1,
+            limit: pageLimit.value,
+            total_pages: 1,
+        };
     } finally {
         loading.value = false;
     }
 };
 
-watch(() => props.filters, loadActivities, { deep: true });
+watch(
+    () => props.filters,
+    () => {
+        pagination.value.page = 1;
+        loadActivities();
+    },
+    { deep: true }
+);
+
+watch(pageLimit, (newLimit, oldLimit) => {
+    if (newLimit === oldLimit) return;
+    pagination.value.page = 1;
+    loadActivities();
+});
 
 loadActivities();
 </script>

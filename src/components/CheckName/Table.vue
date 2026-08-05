@@ -168,7 +168,7 @@
                                                 ยกเลิก
                                             </button>
                                         </li>
-                                        <li>
+                                        <li v-if="canEditLeave">
                                             <button type="button" :disabled="autoSaving"
                                                 class="max-[444px]:text-xs max-[444px]:px-2"
                                                 @click.stop.prevent="editLeave(student._id)">
@@ -228,10 +228,44 @@
                                 class="badge badge-success gap-2 max-[444px]:badge-xs">
                                 มา
                             </span>
-                            <span v-else-if="localAttendanceData[student._id]?.status === 'leave'"
-                                class="badge badge-warning max-[444px]:badge-xs">
-                                ลา
-                            </span>
+                            <div v-else-if="localAttendanceData[student._id]?.status === 'leave'"
+                                class="dropdown dropdown-center">
+                                <button type="button" tabindex="0"
+                                    class="btn btn-sm max-[444px]:btn-xs btn-ghost w-full justify-center border-0 shadow-none bg-transparent hover:bg-base-200 max-[444px]:min-h-7 max-[444px]:h-7 max-[444px]:px-1">
+                                    <span class="badge badge-warning max-[444px]:badge-xs">
+                                        ลา
+                                    </span>
+                                </button>
+                                <ul tabindex="0"
+                                    class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 max-[444px]:w-36 max-[444px]:right-0 max-[444px]:left-auto">
+                                    <li v-if="canEditLeave">
+                                        <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
+                                            @click.stop.prevent="editLeave(student._id)">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-info"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.41-9.41a2 2 0 112.82 2.82L11 16l-4 1 1-4 9.59-9.59z">
+                                                </path>
+                                            </svg>
+                                            แก้ไข
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
+                                            @click.stop.prevent="deleteLeave(student._id)">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-error"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16">
+                                                </path>
+                                            </svg>
+                                            ลบ
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
                             <div v-else-if="localAttendanceData[student._id]?.status === 'activity'"
                                 class="dropdown dropdown-center">
                                 <button type="button" tabindex="0"
@@ -554,6 +588,7 @@
 import { nextTick, onMounted, ref, watch, computed } from 'vue';
 import { LeaveService } from '../../api/leave';
 import { ActivityService } from '../../api/activity';
+import featureFlags from '../../config/featureFlags';
 import Swal from 'sweetalert2';
 
 const leaveService = new LeaveService();
@@ -563,7 +598,10 @@ const props = defineProps({
     students: Array,
     selectedDate: String,
     selectedGrade: String,
-    selectedClassroom: String,
+    selectedClassroom: {
+        type: [String, Number],
+        default: '',
+    },
     selectedDepartment: String,
     loading: Boolean,
     attendanceData: Object,
@@ -639,6 +677,7 @@ const draftStorageKey = computed(() => {
 });
 
 const draftCount = computed(() => Object.keys(draftChanges.value || {}).length);
+const canEditLeave = computed(() => Boolean(featureFlags?.checkName?.enableLeaveEdit));
 
 const saveDraftsToStorage = () => {
     try {
@@ -832,6 +871,10 @@ watch(() => props.pendingLeaveApprovals, () => {
     applyDraftChangesToLocalState();
 }, { deep: true });
 
+watch(() => props.students, () => {
+    currentPage.value = 1;
+});
+
 watch(draftStorageKey, () => {
     loadDraftsFromStorage();
     applyDraftChangesToLocalState();
@@ -899,11 +942,57 @@ const getLeaveTypeIdByName = (name) => {
     return leaveTypes.value.find(type => String(type?.name || '').trim().toLowerCase() === target)?._id || '';
 };
 
-const normalizeTimeInput = (value) => {
+const normalizeLeaveTimeInput = (value) => {
+    if (!value) return '';
+    if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value.slice(0, 5);
+    if (/^\d{2}:\d{2}$/.test(value)) return value;
+    return value;
+};
+
+const normalizeActivityTimeInput = (value) => {
     if (!value) return '';
     if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value;
     if (/^\d{2}:\d{2}$/.test(value)) return `${value}:00`;
     return value;
+};
+
+const normalizeTimeForOptionCompare = (value) => {
+    if (!value) return '';
+    if (/^\d{2}:\d{2}:\d{2}$/.test(value)) return value.slice(0, 5);
+    if (/^\d{2}:\d{2}$/.test(value)) return value;
+    return value;
+};
+
+const getStudentDisplayName = (studentId) => {
+    const student = (props.students || []).find((item) => item?._id === studentId);
+    if (!student) return studentId;
+    return student.name || [student.pre_name, student.first_name, student.last_name].filter(Boolean).join(' ') || student.userid || studentId;
+};
+
+const getRequestErrorMessage = (error) => {
+    return error?.response?.data?.error
+        || error?.response?.data?.message
+        || error?.message
+        || 'ไม่สามารถบันทึกข้อมูลได้';
+};
+
+const pickLeaveRequestId = (source) => {
+    if (!source) return null;
+    return source.requestId || source.leaveRequestId || source.leave_request_id || null;
+};
+
+const getLeaveRequestId = (studentId) => {
+    const draft = getDraftChange(studentId);
+    if (draft?.action === 'leave' && draft.requestId) {
+        return draft.requestId;
+    }
+    const pending = localPendingLeaveApprovals.value?.[studentId];
+    const pendingRequestId = pickLeaveRequestId(pending);
+    if (pendingRequestId) {
+        return pendingRequestId;
+    }
+    const attendance = localAttendanceData.value?.[studentId];
+    return pickLeaveRequestId(attendance);
 };
 
 const loadLeaveTypes = async () => {
@@ -955,29 +1044,37 @@ const openLeaveModal = async (studentId, mode = 'create') => {
     leaveModal.value.requestId = useDraft
         ? (draft.requestId || null)
         : mode === 'edit'
-            ? (pending.requestId || attendance.leaveRequestId || null)
+            ? getLeaveRequestId(studentId)
             : null;
 
     const defaultDate = props.selectedDate || '';
     const startDate = useDraft
         ? (draft.startDate || defaultDate)
         : mode === 'edit'
-            ? (pending.startDate || pending.leaveDate || defaultDate)
+            ? (pending.startDate || pending.start_date || pending.leaveDate || attendance.startDate || attendance.start_date || attendance.leaveDate || defaultDate)
             : defaultDate;
     const endDate = useDraft
         ? (draft.endDate || draft.startDate || defaultDate)
         : mode === 'edit'
-            ? (pending.endDate || pending.leaveDate || defaultDate)
+            ? (pending.endDate || pending.end_date || pending.leaveDate || attendance.endDate || attendance.end_date || attendance.leaveDate || attendance.startDate || attendance.start_date || defaultDate)
             : defaultDate;
 
-    const rawStartTime = useDraft ? (draft.startTime || '') : mode === 'edit' ? (pending.startTime || '') : '';
-    const rawEndTime = useDraft ? (draft.endTime || '') : mode === 'edit' ? (pending.endTime || '') : '';
+    const rawStartTime = useDraft
+        ? (draft.startTime || '')
+        : mode === 'edit'
+            ? (pending.startTime || pending.start_time || attendance.startTime || attendance.start_time || '')
+            : '';
+    const rawEndTime = useDraft
+        ? (draft.endTime || '')
+        : mode === 'edit'
+            ? (pending.endTime || pending.end_time || attendance.endTime || attendance.end_time || '')
+            : '';
 
     leaveModal.value.form = {
         leaveStartDate: startDate,
         leaveEndDate: endDate,
         leaveType: selectedLeaveTypeId,
-        timeOption: getTimeOptionFromValues(rawStartTime, rawEndTime), // Default 'all_day' หากไม่แมตช์
+        timeOption: getTimeOptionFromValues(rawStartTime, rawEndTime),
         reason: useDraft ? (draft.reason || '') : mode === 'edit' ? (pending.reason || attendance.remark || '') : '',
     };
     await nextTick();
@@ -1015,8 +1112,10 @@ const getTimeValuesByOption = (option) => {
 };
 
 const getTimeOptionFromValues = (startTime, endTime) => {
-    if (startTime === '07:00' && endTime === '13:00') return 'morning';
-    if (startTime === '12:00' && endTime === '17:00') return 'afternoon';
+    const normalizedStartTime = normalizeTimeForOptionCompare(startTime);
+    const normalizedEndTime = normalizeTimeForOptionCompare(endTime);
+    if (normalizedStartTime === '07:00' && normalizedEndTime === '13:00') return 'morning';
+    if (normalizedStartTime === '12:00' && normalizedEndTime === '17:00') return 'afternoon';
     return 'all_day';
 };
 
@@ -1326,7 +1425,54 @@ const deleteActivity = async (studentId) => {
 
 const editLeave = async (studentId) => {
     if (autoSaving.value) return;
+    if (!canEditLeave.value) {
+        Swal.fire('แจ้งเตือน', 'ปิดการแก้ไขรายการลาไว้ชั่วคราว', 'info');
+        return;
+    }
+    if (!getLeaveRequestId(studentId)) {
+        Swal.fire('แจ้งเตือน', 'ไม่พบรหัสรายการลา จึงยังแก้ไขไม่ได้', 'warning');
+        return;
+    }
     await openLeaveModal(studentId, 'edit');
+};
+
+const deleteLeave = async (studentId) => {
+    if (autoSaving.value) return;
+
+    const requestId = getLeaveRequestId(studentId);
+    if (!requestId) {
+        Swal.fire('แจ้งเตือน', 'ไม่พบรหัสรายการลาสำหรับลบ', 'warning');
+        return;
+    }
+
+    const confirm = await Swal.fire({
+        title: 'ยืนยันการลบรายการลา?',
+        text: 'รายการลานี้จะถูกลบถาวร',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'ลบ',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#dc2626',
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    autoSaving.value = true;
+    try {
+        await leaveService.deleteLeaveRequest(requestId);
+        removeDraftChange(studentId);
+        restoreActivityAfterLeaveDecision(studentId);
+        delete localPendingLeaveApprovals.value[studentId];
+        emit('update:attendanceData', localAttendanceData.value);
+        emit('update:pendingLeaveApprovals', localPendingLeaveApprovals.value);
+        emit('request:reload');
+        Swal.fire('สำเร็จ', 'ลบรายการลาเรียบร้อยแล้ว', 'success');
+    } catch (error) {
+        Swal.fire('เกิดข้อผิดพลาด', error?.response?.data?.error || error?.message || 'ลบรายการลาไม่สำเร็จ', 'error');
+        console.error('Delete leave error:', error);
+    } finally {
+        autoSaving.value = false;
+    }
 };
 
 const isSelectedDateInLeaveRange = (startDate, endDate) => {
@@ -1343,9 +1489,14 @@ const createLeaveRequest = async () => {
 
     const studentId = leaveModal.value.studentId;
     const leaveType = leaveModal.value.form.leaveType;
-    const reason = leaveModal.value.form.reason;
+    const reason = String(leaveModal.value.form.reason || '').trim();
     const leaveStartDate = leaveModal.value.form.leaveStartDate || props.selectedDate;
     const leaveEndDate = leaveModal.value.form.leaveEndDate || leaveStartDate;
+
+    if (!reason) {
+        Swal.fire('แจ้งเตือน', 'กรุณากรอกรายละเอียดการลา', 'warning');
+        return;
+    }
 
     if (!leaveStartDate || !leaveEndDate) {
         Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันเริ่มลาและวันสิ้นสุดลา', 'warning');
@@ -1419,8 +1570,8 @@ const saveSingleDraftChange = async (studentId, draftChange) => {
             leave_type_id: draftChange.leaveTypeId,
             start_date: draftChange.startDate,
             end_date: draftChange.endDate,
-            start_time: normalizeTimeInput(draftChange.startTime),
-            end_time: normalizeTimeInput(draftChange.endTime),
+            start_time: normalizeLeaveTimeInput(draftChange.startTime),
+            end_time: normalizeLeaveTimeInput(draftChange.endTime),
             reason: draftChange.reason || '',
             attachment_url: '',
         };
@@ -1445,8 +1596,8 @@ const saveSingleDraftChange = async (studentId, draftChange) => {
             activity_name: draftChange.activityName,
             activity_date_start: draftChange.activityDateStart,
             activity_date_end: draftChange.activityDateEnd,
-            start_time: normalizeTimeInput(draftChange.startTime || '00:00'),
-            end_time: normalizeTimeInput(draftChange.endTime || '23:59'),
+            start_time: normalizeActivityTimeInput(draftChange.startTime),
+            end_time: normalizeActivityTimeInput(draftChange.endTime),
             location: draftChange.location || '',
             status: 'เข้าร่วม',
             remark: draftChange.remark || '',
@@ -1473,6 +1624,7 @@ const saveAllDraftChanges = async () => {
     autoSaving.value = true;
     let successCount = 0;
     let failCount = 0;
+    const failureMessages = [];
 
     const entries = Object.entries(draftChanges.value || {}).sort((a, b) => {
         const timeA = Number(a?.[1]?.updatedAt || 0);
@@ -1487,6 +1639,7 @@ const saveAllDraftChanges = async () => {
             successCount += 1;
         } catch (error) {
             failCount += 1;
+            failureMessages.push(`${getStudentDisplayName(studentId)}: ${getRequestErrorMessage(error)}`);
             console.error(`Save queued checkname failed for ${studentId}:`, error);
         }
     }
@@ -1500,7 +1653,18 @@ const saveAllDraftChanges = async () => {
     if (failCount === 0) {
         Swal.fire('สำเร็จ', `บันทึกรายการสำเร็จ ${successCount} รายการ`, 'success');
     } else {
-        Swal.fire('บันทึกไม่ครบ', `สำเร็จ ${successCount} รายการ, ไม่สำเร็จ ${failCount} รายการ`, 'warning');
+        const detailLines = failureMessages.slice(0, 3).map((message) => `<div style="text-align:left">- ${message}</div>`).join('');
+        const moreCount = failureMessages.length - Math.min(failureMessages.length, 3);
+        Swal.fire({
+            title: 'บันทึกไม่ครบ',
+            icon: 'warning',
+            html: `
+                <div>สำเร็จ ${successCount} รายการ, ไม่สำเร็จ ${failCount} รายการ</div>
+                <div style="margin-top:8px">สาเหตุ:</div>
+                <div style="margin-top:4px">${detailLines || '<div style="text-align:left">- ไม่ทราบสาเหตุ</div>'}</div>
+                ${moreCount > 0 ? `<div style="margin-top:8px">และอีก ${moreCount} รายการ</div>` : ''}
+            `,
+        });
     }
 };
 

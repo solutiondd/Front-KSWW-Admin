@@ -17,13 +17,13 @@
                         <input v-model="searchQuery" type="text" class="input input-bordered w-full"
                             placeholder="ชื่อหรือรหัส..." @input="handleSearch" />
                     </div>
-                    <div v-if="residentRole !== 'teacher'" class="w-full">
+                    <!-- <div v-if="residentRole !== 'teacher'" class="w-full">
                         <label class="block text-sm font-medium text-gray-700 mb-2">ประเภท</label>
                         <select v-model="selectedRole" class="select select-bordered w-full" @change="handleRoleChange">
                             <option value="student">นักเรียน</option>
                             <option value="teacher">ครู</option>
                         </select>
-                    </div>
+                    </div> -->
                     <template v-if="selectedRole === 'student'">
                         <div v-if="residentRole !== 'teacher'" class="w-full">
                             <label class="block text-sm font-medium text-gray-700 mb-2">ชั้นเรียน</label>
@@ -185,34 +185,25 @@ const handleSearch = () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(async () => {
         const q = searchQuery.value.trim();
+        const roleForMap = selectedRole.value === 'teacher' ? 'teacher' : 'student';
+
         if (!q) {
             students.value = allStudents.value;
+            await mapDailyStatus(allStudents.value, roleForMap);
             return;
         }
-        if (residentRole !== 'teacher' && selectedRole.value === 'student') {
-            loading.value = true;
-            try {
-                const isNumeric = /^\d+$/.test(q);
-                const response = await studentService.searchStudent({
-                    name: isNumeric ? '' : q,
-                    userid: isNumeric ? q : '',
-                });
-                const result = response.data || [];
-                students.value = result;
-                await mapDailyStatus(result, 'student');
-            } catch (error) {
-                console.error('Search student error:', error);
-            } finally {
-                loading.value = false;
-            }
-        } else {
-            const lower = q.toLowerCase();
-            students.value = allStudents.value.filter(s => {
-                const name = [s.pre_name, s.first_name, s.last_name, s.name].filter(Boolean).join(' ').toLowerCase();
-                const userid = String(s.userid || '').toLowerCase();
-                return name.includes(lower) || userid.includes(lower);
-            });
-        }
+
+        const lower = q.toLowerCase();
+        students.value = allStudents.value.filter((s) => {
+            const name = [s.pre_name, s.first_name, s.last_name, s.name]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+            const userid = String(s.userid || '').toLowerCase();
+            return name.includes(lower) || userid.includes(lower);
+        });
+
+        await mapDailyStatus(students.value, roleForMap);
     }, 300);
 };
 
@@ -338,6 +329,16 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
         attendanceParams.department = selectedDepartment.value;
     }
 
+    const activityFilters = {
+        limit: 500,
+        page: 1,
+    };
+
+    if (roleType === 'student') {
+        activityFilters.grade = selectedGrade.value;
+        activityFilters.classroom = selectedClassroom.value;
+    }
+
     const [attendanceResponse, leaveResponse, activityResponse] = await Promise.all([
         reportApi.getAttendanceReport(attendanceParams),
         leaveService.getLeaveRequests({
@@ -346,7 +347,7 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
             status: '',
             user_id: '',
         }),
-        activityService.getActivities(selectedDate.value, selectedDate.value),
+        activityService.getActivities(selectedDate.value, selectedDate.value, activityFilters),
     ]);
 
     const attendanceRows = attendanceResponse?.data || [];
@@ -431,12 +432,21 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
             const leaveStatus = String(leaveRequest?.status || '').toLowerCase();
             const leaveTypeName = leaveRequest?.leave_type_id?.name || 'ลา';
             const reason = leaveRequest?.reason || '';
+            const startDate = normalizeDateString(leaveRequest?.start_date);
+            const endDate = normalizeDateString(leaveRequest?.end_date || leaveRequest?.start_date);
+            const startTime = leaveRequest?.start_time || '';
+            const endTime = leaveRequest?.end_time || '';
 
             nextAttendanceData[student._id] = {
                 status: 'leave',
                 leaveType: leaveTypeName,
+                leaveTypeId: leaveRequest?.leave_type_id?._id || leaveRequest?.leave_type_id || '',
                 remark: reason,
                 leaveRequestId: leaveRequest?._id || null,
+                startDate,
+                endDate,
+                startTime,
+                endTime,
                 leaveStatus,
                 previousActivity,
             };
@@ -445,6 +455,11 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
                 nextPendingLeaveApprovals[student._id] = {
                     requestId: leaveRequest?._id || null,
                     leaveType: leaveTypeName,
+                    leaveTypeId: leaveRequest?.leave_type_id?._id || leaveRequest?.leave_type_id || '',
+                    startDate,
+                    endDate,
+                    startTime,
+                    endTime,
                     reason,
                     previousActivity,
                 };

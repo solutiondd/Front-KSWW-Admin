@@ -8,8 +8,53 @@ import { createPinia } from "pinia";
 import { useAuthStore } from "./stores/auth";
 import axios from "axios";
 import { UserService } from "./api/User.js";
+import { registerSW } from "virtual:pwa-register";
 
 const app = createApp(App);
+
+// Apply updates quickly after a fresh page load, but keep long-open tabs until midnight.
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  const bootTime = Date.now();
+  const immediateApplyWindowMs = 2 * 60 * 1000;
+  let hasPendingUpdate = false;
+
+  const msUntilNextMidnight = () => {
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(24, 0, 0, 0);
+    return Math.max(1, next.getTime() - now.getTime());
+  };
+
+  const scheduleNextMidnightUpdate = (registration) => {
+    setTimeout(() => {
+      // Ask browser for a new SW once per day, then activate immediately if found.
+      registration.update();
+      if (hasPendingUpdate) {
+        updateSW(true);
+      }
+      scheduleNextMidnightUpdate(registration);
+    }, msUntilNextMidnight());
+  };
+
+  const updateSW = registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      hasPendingUpdate = true;
+      const justLoaded = Date.now() - bootTime <= immediateApplyWindowMs;
+
+      if (justLoaded) {
+        updateSW(true);
+      }
+    },
+    onRegisteredSW(_, registration) {
+      if (!registration) return;
+      scheduleNextMidnightUpdate(registration);
+    },
+    onRegisterError(error) {
+      console.error("Service worker registration failed", error);
+    },
+  });
+}
 
 app.use(createPinia());
 app.use(router);
@@ -86,10 +131,10 @@ axios.interceptors.response.use(
 );
 
 // ป้องกันการคลิกขวาบนรูปภาพทั่วทั้งหมด
-document.addEventListener('contextmenu', (e) => {
-    if (e.target.tagName === 'IMG') {
-        e.preventDefault();
-    }
+document.addEventListener("contextmenu", (e) => {
+  if (e.target.tagName === "IMG") {
+    e.preventDefault();
+  }
 });
 
 app.mount("#app");

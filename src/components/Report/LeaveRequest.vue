@@ -38,7 +38,7 @@
                         <td class="text-xs min-[433px]:text-sm">{{ formatClassroomDisplay(request.user_id) }}</td>
                         <!-- <td class="hidden xl:table-cell">{{ formatRole(request.user_id?.role) }}</td> -->
                         <td class="hidden md:table-cell">
-                            {{ formatDate(request.start_date) }}
+                            {{ formatDateRangeShort(request.start_date, request.end_date) }}
                             <span v-if="request.start_time" class="text-xs text-gray-500 block">
                                 ({{ request.start_time }} - {{ request.end_time }})
                             </span>
@@ -175,6 +175,34 @@ const formatDate = (date) => {
     }).format(d);
 };
 
+const formatDateShort = (date) => {
+    if (!date) return '-';
+    const d = new Date(date);
+    return new Intl.DateTimeFormat('th-TH', {
+        day: '2-digit',
+        month: 'short',
+    }).format(d);
+};
+
+const formatDateRangeShort = (startDate, endDate) => {
+    if (!startDate && !endDate) return '-';
+
+    const start = startDate || endDate;
+    const end = endDate || startDate;
+    if (!start || !end) return '-';
+
+    const startShort = formatDateShort(start);
+    const endShort = formatDateShort(end);
+    const startFull = formatDate(start);
+    const endFull = formatDate(end);
+
+    if (startFull === endFull) {
+        return startFull;
+    }
+
+    return `${startShort} - ${endShort}`;
+};
+
 const formatStatus = (status) => {
     if (!status) return '-';
     if (status === 'approved') return 'อนุมัติแล้ว';
@@ -287,6 +315,7 @@ const exportLeaveToExcel = async () => {
 const loadLeaveRequests = async () => {
     loading.value = true;
     try {
+        const search = String(props.filters.search || '').trim();
         let filters = {
             start_date: props.filters.start_date || '',
             end_date: props.filters.end_date || '',
@@ -294,6 +323,10 @@ const loadLeaveRequests = async () => {
             grade: props.filters.grade || '',
             classroom: props.filters.classroom || '',
         };
+
+        if (search) {
+            filters.userid = search;
+        }
 
         if (residentRole === 'teacher' && teacherGrade && teacherClassroom) {
             filters.grade = teacherGrade;
@@ -307,12 +340,9 @@ const loadLeaveRequests = async () => {
             data = data.filter((item) => item.user_id?.role === props.filters.role);
         }
 
-        if (props.filters.search) {
-            const search = props.filters.search.toLowerCase();
+        if (search) {
             data = data.filter(
-                (item) =>
-                    item.user_id?.name?.toLowerCase().includes(search) ||
-                    item.user_id?.userid?.toLowerCase().includes(search)
+                (item) => String(item.user_id?.userid || '').toLowerCase().includes(search.toLowerCase())
             );
         }
 

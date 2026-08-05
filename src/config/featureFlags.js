@@ -18,6 +18,7 @@ export default {
     // person_confirmation: ต้องมี usecase = person_confirmation
     // any_timestamp: มี timeStamps มากกว่า 0 ก็ถือว่ามา
     presentMode: "any_timestamp", // หมดการพิจารณาว่ามาแล้วหรือยังสำหรับหน้าเช็คชื่อ
+    enableLeaveEdit: false, // true = แก้ไขรายการลาได้, false = ซ่อนปุ่มแก้ไข (ให้เหลือเฉพาะลบ)
   },
 
   // ฟีเจอร์สำหรับอุปกรณ์
@@ -28,6 +29,11 @@ export default {
   // ฟีเจอร์สำหรับไลน์หน้านักเรียน
   student: {
     enableLineStatusFilter: true, // true = แสดงตัวกรองสถานะ LINE, false = ซ่อน
+  },
+
+  // ฟีเจอร์สำหรับหน้าบุคลากร
+  teacher: {
+    enableApiNumberColumn: false, // true = แสดงคอลัมน์เลข API (note), false = ซ่อน
   },
 
   // ฟีเจอร์สำหรับหน้า Home

@@ -28,7 +28,7 @@
                     <input type="file" accept="image/*" multiple @change="onImagesChange"
                         class="file-input file-input-bordered file-input-sm w-full max-w-xs" />
                     <p v-if="imageFiles.length" class="text-xs text-success mt-1">รูปภาพที่เลือก: {{ imageFiles.length
-                        }} ไฟล์</p>
+                    }} ไฟล์</p>
                     <p class="text-xs text-gray-500 mt-1">กรุณาตั้งชื่อไฟล์รูปภาพให้ตรงกับคอลัมน์ ชื่อรูป เช่น
                         <b>image001.jpg</b>
                         เพื่อให้ระบบแมปข้อมูลอัตโนมัติ
@@ -111,6 +111,32 @@ import { StudentService } from '../../api/student'
 import * as XLSX from 'xlsx'
 import Swal from 'sweetalert2'
 import { mapGradeDisplay } from '../../utils/gradeSystem'
+
+let faceapiLib = null
+let tinyFaceModelReady = false
+
+const ensureTinyFaceDetectorModel = async () => {
+    if (!faceapiLib) {
+        faceapiLib = await import('face-api.js')
+    }
+
+    if (!tinyFaceModelReady) {
+        await faceapiLib.nets.tinyFaceDetector.loadFromUri('/models')
+        tinyFaceModelReady = true
+    }
+
+    return faceapiLib
+}
+
+const detectFace = async (file) => {
+    const faceapi = await ensureTinyFaceDetectorModel()
+    const img = await faceapi.bufferToImage(file)
+    const detections = await faceapi.detectAllFaces(
+        img,
+        new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 })
+    )
+    return detections.length > 0
+}
 
 async function resizeImage(file, maxSizeKB = 70, targetWidth = 450) {
     return new Promise((resolve, reject) => {
@@ -331,9 +357,15 @@ async function handleImport() {
             try {
                 const resizedBlob = await resizeImage(sourceFile, 70, 450);
                 const resizedFile = new File([resizedBlob], sourceFile.name, { type: 'image/jpeg' });
+                const hasFace = await detectFace(resizedFile)
+                if (!hasFace) {
+                    resizedImageCache[normalizedKey] = null;
+                    return null;
+                }
                 resizedImageCache[normalizedKey] = resizedFile;
                 return resizedFile;
             } catch (err) {
+                resizedImageCache[normalizedKey] = null;
                 return null;
             }
         }
@@ -387,23 +419,23 @@ async function handleImport() {
             let formData = {};
             if (existing && existing.message === 'Success' && existing.data && existing.data._id) {
                 const oldData = existing.data;
-                
+
                 let fallbackFirstName = oldData.first_name || '';
                 let fallbackLastName = oldData.last_name || '';
 
                 if ((!fallbackFirstName || !fallbackLastName) && oldData.name) {
                     let cleanName = oldData.name.replace(/^(เด็กชาย|เด็กหญิง|นาย|นางสาว|นาง)\s*/, '').trim();
                     const nameParts = cleanName.split(/\s+/);
-                    
+
                     fallbackFirstName = nameParts[0] || '';
-                    fallbackLastName = nameParts.slice(1).join(' ') || ''; 
+                    fallbackLastName = nameParts.slice(1).join(' ') || '';
                 }
 
                 formData = {
                     ...oldData,
                     userid: cleanedStudent.userid,
                 };
-                
+
                 delete formData.picture;
 
                 const isInvalidValue = (val) => {
@@ -415,10 +447,10 @@ async function handleImport() {
                 formData.pre_name = !isInvalidValue(cleanedStudent.pre_name) ? cleanedStudent.pre_name : (oldData.pre_name || '');
                 formData.first_name = !isInvalidValue(cleanedStudent.first_name) ? cleanedStudent.first_name : fallbackFirstName;
                 formData.last_name = !isInvalidValue(cleanedStudent.last_name) ? cleanedStudent.last_name : fallbackLastName;
-                
+
                 formData.grade = !isInvalidValue(cleanedStudent.grade) ? cleanedStudent.grade : oldData.grade;
                 formData.classroom = !isInvalidValue(cleanedStudent.classroom) ? cleanedStudent.classroom : oldData.classroom;
-                
+
                 formData.guardian_phone = cleanedStudent.guardian_phone !== '' ? cleanedStudent.guardian_phone : oldData.guardian_phone;
                 formData.rfid = cleanedStudent.rfid !== '' ? cleanedStudent.rfid : oldData.rfid;
 

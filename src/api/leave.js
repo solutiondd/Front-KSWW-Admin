@@ -96,26 +96,30 @@ export class LeaveService {
   // Leave Request
   async getLeaveRequests(params = {}) {
     try {
-        const cleanParams = {};
-        Object.entries(params).forEach(([key, value]) => {
-            if (value !== undefined && value !== null && String(value).trim() !== '') {
-                cleanParams[key] = String(value).trim();
-            }
-        });
+      const cleanParams = {};
+      Object.entries(params).forEach(([key, value]) => {
+        if (
+          value !== undefined &&
+          value !== null &&
+          String(value).trim() !== ""
+        ) {
+          cleanParams[key] = String(value).trim();
+        }
+      });
 
-        const response = await axios.get(`${this.baseUrl}leave-request`, {
-            headers: {
-                Authorization: `Bearer ${this.token}`,
-            },
-            params: cleanParams,
-        });
-        
-        return response.data;
+      const response = await axios.get(`${this.baseUrl}leave-request`, {
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+        params: cleanParams,
+      });
+
+      return response.data;
     } catch (error) {
-        console.error("Get leave requests error:", error);
-        throw error;
+      console.error("Get leave requests error:", error);
+      throw error;
     }
-}
+  }
 
   async createLeaveRequest(data) {
     try {
@@ -200,6 +204,24 @@ export class LeaveService {
       return response.data;
     } catch (error) {
       console.error("Cancel leave request error:", error);
+      throw error;
+    }
+  }
+
+  async deleteLeaveRequest(id) {
+    try {
+      const config = {
+        method: "delete",
+        maxBodyLength: Infinity,
+        url: `${this.baseUrl}leave-request/${id}`,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      };
+      const response = await axios.request(config);
+      return response.data;
+    } catch (error) {
+      console.error("Delete leave request error:", error);
       throw error;
     }
   }

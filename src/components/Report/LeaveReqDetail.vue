@@ -8,7 +8,8 @@
                 </div>
 
                 <div class="flex flex-col items-end min-[444px]:flex-row min-[444px]:items-center gap-2" v-if="request">
-                    <div :class="['badge gap-1 h-auto py-1 text-center whitespace-normal min-[444px]:whitespace-nowrap', checkAttendanceStatus(request).badgeClass]">
+                    <div
+                        :class="['badge gap-1 h-auto py-1 text-center whitespace-normal min-[444px]:whitespace-nowrap', checkAttendanceStatus(request).badgeClass]">
                         {{ checkAttendanceStatus(request).label }}
                     </div>
                     <div :class="['badge h-auto py-1 whitespace-nowrap', getStatusBadgeClass(request.status)]">
@@ -108,10 +109,18 @@
                     </h4>
 
                     <div v-if="filteredAttendance.length > 0" class="flex flex-wrap gap-4">
-                        <div v-for="att in filteredAttendance" :key="att._id"
+                        <div v-for="(att, idx) in filteredAttendance" :key="att._id || idx"
                             class="w-36 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm flex flex-col items-center p-2 text-center">
-                            <img :src="getAttendanceImage(att.imageUrl)" alt="รูปถ่ายเวลาเข้า"
-                                class="w-full h-32 object-cover rounded-md mb-2 bg-slate-100" />
+                            <div
+                                class="w-full h-32 object-cover rounded-md mb-2 bg-slate-100 flex items-center justify-center overflow-hidden">
+                                <img v-if="att.imageUrl" :src="getAttendanceImage(att.imageUrl)" alt="รูปถ่ายเวลาเข้า"
+                                    class="w-full h-32 object-cover" @error="imageErrorHandler(idx)"
+                                    v-show="!imageError[idx]" />
+                                <span v-if="!att.imageUrl || imageError[idx]"
+                                    class="text-4xl font-bold text-blue-700 select-none">
+                                    {{ getInitials(request.user_id?.name) }}
+                                </span>
+                            </div>
                             <div class="text-blue-600 font-bold text-base">
                                 {{ att.time }}
                             </div>
@@ -141,11 +150,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { formatGradeClassroomDisplay } from '../../utils/gradeSystem';
 
 const modalRef = ref(null);
 const request = ref(null);
+const imgBaseUrl = import.meta.env.VITE_IMG_PROFILE_URL || '';
+const imageError = reactive({});
 
 const formatRole = (role) => {
     if (role === 'student') return 'นักเรียน';
@@ -229,7 +240,7 @@ const checkAttendanceStatus = (req) => {
     }
 
     const now = new Date();
-    const endDateStr = req.end_date; 
+    const endDateStr = req.end_date;
     const endTimeStr = req.end_time || '12:00:00';
     const endDateTime = new Date(`${endDateStr}T${endTimeStr}`);
 
@@ -275,11 +286,27 @@ const formatDateRange = (startDate, endDate) => {
 const getAttendanceImage = (imageUrl) => {
     if (!imageUrl) return '/placeholder.jpg';
     if (imageUrl.startsWith('http')) return imageUrl;
-    return `/${imageUrl}`;
+
+    const base = String(imgBaseUrl || '').replace(/\/$/, '');
+    const path = String(imageUrl).startsWith('/') ? String(imageUrl) : `/${imageUrl}`;
+    return `${base}${path}`;
+};
+
+const imageErrorHandler = (key) => {
+    imageError[key] = true;
+};
+
+const getInitials = (name) => {
+    if (!name) return '-';
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`;
+    if (parts.length === 1) return parts[0][0];
+    return '-';
 };
 
 const openModal = (data) => {
     request.value = data;
+    Object.keys(imageError).forEach((k) => delete imageError[k]);
     modalRef.value?.showModal();
 };
 
