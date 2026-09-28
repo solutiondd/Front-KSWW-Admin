@@ -35,7 +35,14 @@ const props = defineProps({
 const loading = ref(false)
 
 const getLineStatus = (student) => {
-    return student?.lineuser_id ? 'เชื่อมต่อแล้ว' : 'ยังไม่ได้เชื่อมต่อ'
+    const guardianSource = student?.guadians ?? student?.guardians
+    const guardians = Array.isArray(guardianSource)
+        ? guardianSource
+        : guardianSource ? [guardianSource] : []
+    const isConnected = guardians.some(guardian =>
+        guardian?.lineuser_id || guardian?.line_user_id || guardian?.lineUserId
+    )
+    return isConnected ? 'เชื่อมต่อแล้ว' : 'ยังไม่ได้เชื่อมต่อ'
 }
 
 const buildTitle = () => {
