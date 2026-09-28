@@ -62,10 +62,7 @@
                         </label>
                         <select v-model="formData.pre_name" class="select select-bordered w-full" required>
                             <option value="">เลือกคำนำหน้า</option>
-                            <option value="เด็กชาย">เด็กชาย</option>
-                            <option value="เด็กหญิง">เด็กหญิง</option>
-                            <option value="นาย">นาย</option>
-                            <option value="นางสาว">นางสาว</option>
+                            <option v-for="prefix in prefixOptions" :key="prefix" :value="prefix">{{ prefix }}</option>
                         </select>
                     </div>
 
@@ -178,8 +175,10 @@
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem'
+import { getPrefixOptions } from '../../utils/prefixSystem'
 
 const auth = useAuthStore()
+const prefixOptions = computed(() => getPrefixOptions())
 
 const modalRef = ref(null)
 const loading = ref(false)

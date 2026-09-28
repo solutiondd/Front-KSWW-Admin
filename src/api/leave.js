@@ -121,6 +121,24 @@ export class LeaveService {
     }
   }
 
+  async getLeaveRequestById(id) {
+    try {
+      const config = {
+        method: "get",
+        maxBodyLength: Infinity,
+        url: `${this.baseUrl}leave-request/${id}`,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+        },
+      };
+      const response = await axios.request(config);
+      return response.data;
+    } catch (error) {
+      console.error("Get leave request by id error:", error);
+      throw error;
+    }
+  }
+
   async createLeaveRequest(data) {
     try {
       const config = {

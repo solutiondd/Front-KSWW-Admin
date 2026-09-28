@@ -8,6 +8,11 @@ export default {
     enablePromoteLevel: true, // true = แสดงปุ่มเลื่อนระดับห้องเรียน
   },
 
+  // ฟีเจอร์สำหรับคำนำหน้าชื่อ
+  prefixSystem: {
+    enableEnglishPrefix: false, // true = ใช้คำนำหน้าภาษาอังกฤษ (Mr., Miss, Mstr.), false = ใช้ภาษาไทย
+  },
+
   // ฟีเจอร์สำหรับตารางเข้า-ออก
   attendance: {
     enableLineupColumn: false, // true = แสดงคอลัมน์เข้าแถว, false = ซ่อน

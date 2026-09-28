@@ -98,8 +98,8 @@ const inspectionData = ref({});
 const isSaving = ref(false);
 let searchTimer = null;
 
-const malePrefixes = ['นาย', 'เด็กชาย', 'ดช', 'ด.ช', 'mr'];
-const femalePrefixes = ['นางสาว', 'นาง', 'เด็กหญิง', 'ดญ', 'ด.ญ', 'mrs', 'ms', 'miss'];
+const malePrefixes = ['นาย', 'เด็กชาย', 'ดช', 'ด.ช', 'Mr.', 'Mstr.'];
+const femalePrefixes = ['นางสาว', 'นาง', 'เด็กหญิง', 'ดญ', 'ด.ญ', 'Mrs.', 'Ms.', 'Miss'];
 
 const conductLabelToLevel = {
     'ตักเตือน ลงบันทึก': 1,

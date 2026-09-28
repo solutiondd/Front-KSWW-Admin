@@ -336,6 +336,19 @@
                                 <span class="text-sm">จัดการเชื่อมต่ออุปกรณ์</span>
                             </router-link>
                         </li>
+
+                        <li v-if="auth.user?.role == 'super admin' || auth.user?.role == 'admin'">
+                            <router-link to="/home/monitor"
+                                class="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-warning/20 transition-colors"
+                                :class="submenuClass('/home/monitor')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <span class="text-sm">มอนิเตอร์</span>
+                            </router-link>
+                        </li>
                     </ul>
                 </li>
 
@@ -422,6 +435,18 @@
                                 <span>ขาดเรียน</span>
                             </router-link>
                         </li>
+                        <!-- <li>
+                            <router-link to="/home/report/summary"
+                                class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-warning/20 transition-colors text-sm"
+                                :class="submenuClass('/home/report/summary')">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 flex-shrink-0" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 17v-2a4 4 0 014-4h4m0 0l-4-4m4 4l-4 4M3 12a9 9 0 1018 0 9 9 0 00-18 0z" />
+                                </svg>
+                                <span>สรุปข้อมูล</span>
+                            </router-link>
+                        </li> -->
                         <li v-if="auth.user?.role !== 'teacher'">
                             <router-link to="/home/report/stranger"
                                 class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-warning/20 transition-colors text-sm"
@@ -493,6 +518,23 @@
                         </div>
                     </router-link>
                 </li>
+
+                <li>
+                    <button @click="confirmManualDownload"
+                        class="flex w-full items-center gap-3 px-4 py-3 rounded-lg hover:bg-base-200 transition-colors relative group">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none"
+                            viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                        </svg>
+                        <span v-show="isExpanded" class="font-medium whitespace-nowrap">คู่มือ</span>
+
+                        <div v-show="!isExpanded"
+                            class="absolute left-full ml-2 px-3 py-2 bg-base-300 text-base-content rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+                            คู่มือ
+                        </div>
+                    </button>
+                </li>
             </ul>
         </nav>
     </aside>
@@ -523,11 +565,11 @@ const isPersonnelActive = computed(() => {
 })
 
 const isStructureActive = computed(() => {
-    return route.path === '/home/department' || route.path === '/home/position' || route.path === '/home/classroom' || route.path === '/home/holidays' || route.path === '/home/academiccalendar'
+    return route.path === '/home/department' || route.path === '/home/position' || route.path === '/home/classroom' || route.path === '/home/holidays' || route.path === '/home/academiccalendar' || route.path === '/home/allowance-setting'
 })
 
 const isEquipmentActive = computed(() => {
-    return route.path === '/home/device' || route.path === '/home/model'
+    return route.path === '/home/device' || route.path === '/home/model' || route.path === '/home/monitor'
 })
 
 const isReportActive = computed(() => {
@@ -583,6 +625,29 @@ const isBehaviorMenuActive = computed(() => {
 })
 const toggleBehaviorMenu = () => {
     isBehaviorMenuOpen.value = !isBehaviorMenuOpen.value
+}
+
+const confirmManualDownload = async () => {
+    const { default: Swal } = await import('sweetalert2')
+    const result = await Swal.fire({
+        title: 'ดาวน์โหลดคู่มือ',
+        text: 'ต้องการดาวน์โหลดคู่มือการใช้งานระบบหรือไม่?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'ดาวน์โหลด',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#2563eb'
+    })
+
+    if (result.isConfirmed) {
+        const manualUrl = `${import.meta.env.BASE_URL}คู่มือการใช้งาน_ระบบจัดการบุคลากรและนักเรียน(super admin).pdf`
+        const link = document.createElement('a')
+        link.href = manualUrl
+        link.download = 'คู่มือการใช้งาน.pdf'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
 }
 
 const toggleMobileMenu = () => {

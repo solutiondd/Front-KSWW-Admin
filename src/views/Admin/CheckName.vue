@@ -88,6 +88,7 @@ import { PositionService } from '../../api/position';
 import reportApi from '../../api/report';
 import { LeaveService } from '../../api/leave';
 import { ActivityService } from '../../api/activity';
+import { AllowanceService } from '../../api/allowance';
 import CheckNameTable from '../../components/CheckName/Table.vue';
 import featureFlags from '../../config/featureFlags';
 import { mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem';
@@ -100,6 +101,7 @@ const departmentService = new DepartmentService();
 const positionService = new PositionService();
 const leaveService = new LeaveService();
 const activityService = new ActivityService();
+const allowanceService = new AllowanceService();
 const residentRole = localStorage.getItem('residentRole') || '';
 const teacherGrade = localStorage.getItem('grade') || '';
 const teacherClassroom = localStorage.getItem('classroom') || '';
@@ -119,6 +121,7 @@ const searchQuery = ref('');
 let searchTimer = null;
 const attendanceData = ref({});
 const pendingLeaveApprovals = ref({});
+const allowanceSetting = ref(null);
 
 const approvedLeaveStatuses = new Set(['approved']);
 const pendingLeaveStatuses = new Set(['pending']);
@@ -126,6 +129,8 @@ const leaveStatusPriority = {
     approved: 2,
     pending: 1,
 };
+
+const DEFAULT_LATE_CUTOFF_TIME = '08:01:00';
 
 const gradeList = computed(() => {
     return toVisibleSortedGrades(classrooms.value.map(c => c.grade));
@@ -231,25 +236,104 @@ const handleRoleChange = () => {
     }
 };
 
-const hasAttendanceOnDate = (student, date) => {
+const parseTimeToSeconds = (value) => {
+    if (!value || typeof value !== 'string') return null;
+    const match = value.trim().match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) return null;
+
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const seconds = Number(match[3] || '0');
+    if ([hours, minutes, seconds].some((item) => Number.isNaN(item))) return null;
+
+    return (hours * 3600) + (minutes * 60) + seconds;
+};
+
+const parseTimestampToSeconds = (value) => {
+    if (!value) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+
+    const normalized = raw.includes('T')
+        ? raw
+        : raw.includes(' ')
+            ? raw.replace(' ', 'T')
+            : raw;
+
+    const parsedDate = new Date(normalized);
+    if (!isNaN(parsedDate)) {
+        return (parsedDate.getHours() * 3600) + (parsedDate.getMinutes() * 60) + parsedDate.getSeconds();
+    }
+
+    const timeMatch = raw.match(/(\d{2}:\d{2}(?::\d{2})?)/);
+    if (!timeMatch) return null;
+    return parseTimeToSeconds(timeMatch[1]);
+};
+
+const getLateCutoffTime = (roleType = 'student') => {
+    const selectedRoleRule = Array.isArray(allowanceSetting.value?.rules)
+        ? allowanceSetting.value.rules.find((rule) => rule?.role === roleType)
+        : null;
+
+    const lateCutoffTime = allowanceSetting.value?.late?.cutoff_time
+        || allowanceSetting.value?.data?.late?.cutoff_time
+        || selectedRoleRule?.late?.cutoff_time
+        || selectedRoleRule?.allowance_time
+        || DEFAULT_LATE_CUTOFF_TIME;
+
+    return parseTimeToSeconds(lateCutoffTime) !== null ? lateCutoffTime : DEFAULT_LATE_CUTOFF_TIME;
+};
+
+const isAllowedAttendanceTimestamp = (timeStamp) => {
+    if (featureFlags.checkName.presentMode === 'any_timestamp') {
+        return true;
+    }
+
+    const usecase = String(timeStamp?.usecase || '').toLowerCase();
+    return usecase === 'person_confirmation' || usecase === 'attendance';
+};
+
+const getFirstAttendanceSeconds = (student, date) => {
     const attendances = student?.attendances || [];
-    return attendances.some((attendance) => {
+    let firstSeconds = null;
+
+    attendances.forEach((attendance) => {
         if (attendance?.date !== date) {
-            return false;
+            return;
         }
 
-        if (!Array.isArray(attendance?.timeStamps) || attendance.timeStamps.length === 0) {
-            return false;
-        }
+        const timeStamps = Array.isArray(attendance?.timeStamps) ? attendance.timeStamps : [];
+        timeStamps.forEach((timeStamp) => {
+            if (!isAllowedAttendanceTimestamp(timeStamp)) {
+                return;
+            }
 
-        if (featureFlags.checkName.presentMode === 'any_timestamp') {
-            return attendance.timeStamps.length > 0;
-        }
+            const currentSeconds = parseTimestampToSeconds(timeStamp?.timestamp);
+            if (currentSeconds === null) {
+                return;
+            }
 
-        return attendance.timeStamps.some(
-            (timeStamp) => timeStamp?.usecase === 'person_confirmation'
-        );
+            if (firstSeconds === null || currentSeconds < firstSeconds) {
+                firstSeconds = currentSeconds;
+            }
+        });
     });
+
+    return firstSeconds;
+};
+
+const hasAttendanceOnDate = (student, date) => {
+    return getFirstAttendanceSeconds(student, date) !== null;
+};
+
+const loadAllowanceSetting = async () => {
+    try {
+        const response = await allowanceService.getAllowance();
+        allowanceSetting.value = response?.data || null;
+    } catch (error) {
+        console.error('Load allowance setting error:', error);
+        allowanceSetting.value = null;
+    }
 };
 
 const getLeaveStudentKeys = (leaveRequest) => {
@@ -353,12 +437,14 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
     const attendanceRows = attendanceResponse?.data || [];
     const leaveRows = leaveResponse?.data || [];
     const activityRows = activityResponse?.data || [];
-    const presentKeys = new Set();
+    const attendanceStatusByKey = new Map();
     const leaveByStudentKey = new Map();
     const activityByStudentKey = new Map();
+    const lateCutoffSeconds = parseTimeToSeconds(getLateCutoffTime(roleType)) ?? parseTimeToSeconds(DEFAULT_LATE_CUTOFF_TIME);
 
     attendanceRows.forEach((student) => {
-        if (!hasAttendanceOnDate(student, selectedDate.value)) {
+        const firstAttendanceSeconds = getFirstAttendanceSeconds(student, selectedDate.value);
+        if (firstAttendanceSeconds === null) {
             return;
         }
 
@@ -370,8 +456,9 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
             return;
         }
 
+        const status = firstAttendanceSeconds > lateCutoffSeconds ? 'late' : 'present';
         attendanceKeys.forEach((key) => {
-            presentKeys.add(key);
+            attendanceStatusByKey.set(key, status);
         });
     });
 
@@ -482,10 +569,10 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
             return;
         }
 
-        const isPresent = keys.some((key) => presentKeys.has(key));
-        if (isPresent) {
+        const attendanceStatus = keys.map((key) => attendanceStatusByKey.get(key)).find(Boolean);
+        if (attendanceStatus) {
             nextAttendanceData[student._id] = {
-                status: 'present',
+                status: attendanceStatus,
                 leaveType: null,
                 remark: '',
             };
@@ -542,6 +629,7 @@ const loadUsers = async () => {
 
 onMounted(() => {
     selectedDate.value = new Date().toISOString().split('T')[0];
+    loadAllowanceSetting();
     loadClassrooms();
     loadDepartmentsAndPositions();
 

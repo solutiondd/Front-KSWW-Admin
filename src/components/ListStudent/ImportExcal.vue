@@ -434,6 +434,7 @@ async function handleImport() {
                 formData = {
                     ...oldData,
                     userid: cleanedStudent.userid,
+                    no_use_face: true,
                 };
 
                 delete formData.picture;
@@ -487,7 +488,8 @@ async function handleImport() {
                     classroom: cleanedStudent.classroom,
                     guardian_phone: cleanedStudent.guardian_phone,
                     rfid: cleanedStudent.rfid,
-                    picture: resolvedImageFile || null
+                    picture: resolvedImageFile || null,
+                    no_use_face: true
                 };
                 try {
                     const response = await studentService.createStudent(formData);

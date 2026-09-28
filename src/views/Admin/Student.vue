@@ -86,15 +86,16 @@
                         </select>
                     </div>
                     <div class="flex justify-between sm:justify-start w-full sm:w-auto gap-2">
-                        <div class="flex items-end">
-                            <button @click="resetFilters" class="btn btn-ghost btn-sm">
+                        <div class="flex items-end gap-1">
+                            <button @click="resetFilters" class="btn btn-ghost btn-sm" title="รีเซ็ต">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
-                                รีเซ็ต
                             </button>
+                            <ExportExcel :students="filteredBySearch" :grade="selectedGrade"
+                                :classroom="selectedClassroom" />
                         </div>
 
                         <div class="flex sm:form-control w-auto gap-1">
@@ -156,6 +157,7 @@ import { useRoute } from 'vue-router'
 import StudentTable from '../../components/ListStudent/Table.vue'
 import CreateModal from '../../components/ListStudent/Create.vue'
 import ImportExcalModal from '../../components/ListStudent/ImportExcal.vue'
+import ExportExcel from '../../components/ListStudent/ExportExcel.vue'
 import UpdateModal from '../../components/ListStudent/Update.vue'
 import DeleteModal from '../../components/ListStudent/Delete.vue'
 import RePasswordModal from '../../components/ListStudent/RePassword.vue'

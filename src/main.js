@@ -12,7 +12,6 @@ import { registerSW } from "virtual:pwa-register";
 
 const app = createApp(App);
 
-// Apply updates quickly after a fresh page load, but keep long-open tabs until midnight.
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   const bootTime = Date.now();
   const immediateApplyWindowMs = 2 * 60 * 1000;
@@ -27,7 +26,6 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
 
   const scheduleNextMidnightUpdate = (registration) => {
     setTimeout(() => {
-      // Ask browser for a new SW once per day, then activate immediately if found.
       registration.update();
       if (hasPendingUpdate) {
         updateSW(true);

@@ -63,6 +63,7 @@
 <script setup>
 import { ref } from 'vue'
 import { BehaviorService } from '../../api/behavior'
+import { AllowanceService } from '../../api/allowance'
 import Swal from 'sweetalert2';
 
 const createDefaultConductSetting = () => ({
@@ -107,7 +108,88 @@ const form = ref(null)
 const saving = ref(false)
 const absentTimeEnabled = ref(false)
 const service = new BehaviorService()
+const allowanceService = new AllowanceService()
 let originalSetting = null
+
+const normalizeTime = (timeValue) => {
+    if (!timeValue || typeof timeValue !== 'string') return null
+    const parts = timeValue.split(':')
+    if (parts.length < 2) return null
+    const [hh, mm, ss = '00'] = parts
+    return `${hh}:${mm}:${ss}`
+}
+
+const toConductUpdatePayload = (setting) => {
+    const defaults = createDefaultConductSetting()
+    const source = setting || {}
+
+    return {
+        enabled: typeof source.enabled === 'boolean' ? source.enabled : defaults.enabled,
+        late: {
+            enabled: typeof source?.late?.enabled === 'boolean' ? source.late.enabled : defaults.late.enabled,
+            cutoff_time: normalizeTime(source?.late?.cutoff_time) || defaults.late.cutoff_time,
+            score: Number.isFinite(Number(source?.late?.score)) ? Number(source.late.score) : defaults.late.score,
+            behavior_type: source?.late?.behavior_type || defaults.late.behavior_type,
+            behavior: source?.late?.behavior || defaults.late.behavior,
+            behavior_level: Number.isFinite(Number(source?.late?.behavior_level))
+                ? Number(source.late.behavior_level)
+                : defaults.late.behavior_level,
+            description_template: source?.late?.description_template || defaults.late.description_template,
+        },
+        absent: {
+            enabled: typeof source?.absent?.enabled === 'boolean'
+                ? source.absent.enabled
+                : defaults.absent.enabled,
+            cutoff_time: normalizeTime(source?.absent?.cutoff_time),
+            score: Number.isFinite(Number(source?.absent?.score))
+                ? Number(source.absent.score)
+                : defaults.absent.score,
+            behavior_type: source?.absent?.behavior_type || defaults.absent.behavior_type,
+            behavior: source?.absent?.behavior || defaults.absent.behavior,
+            behavior_level: Number.isFinite(Number(source?.absent?.behavior_level))
+                ? Number(source.absent.behavior_level)
+                : defaults.absent.behavior_level,
+            description_template: source?.absent?.description_template || defaults.absent.description_template,
+        },
+    }
+}
+
+const syncStudentAllowanceFromLateCutoff = async (lateCutoffTime) => {
+    const normalizedTime = normalizeTime(lateCutoffTime)
+    if (!normalizedTime) return
+
+    const current = await allowanceService.getAllowance()
+    const currentRules = Array.isArray(current?.data?.rules) ? current.data.rules : []
+    let hasStudentRule = false
+
+    const nextRules = currentRules.map((rule) => {
+        if (rule.role === 'student') {
+            hasStudentRule = true
+            return {
+                ...rule,
+                allowance_time: normalizedTime,
+            }
+        }
+        return {
+            ...rule,
+            allowance_time: normalizeTime(rule.allowance_time) || rule.allowance_time,
+        }
+    })
+
+    if (!hasStudentRule) {
+        nextRules.push({
+            role: 'student',
+            allowance_time: normalizedTime,
+        })
+    }
+
+    await allowanceService.updateAllowance({
+        rules: nextRules.map((rule) => ({
+            role: rule.role,
+            allowance_time: normalizeTime(rule.allowance_time) || rule.allowance_time,
+        })),
+    })
+}
 
 const open = (conductSetting) => {
     const nextSetting = cloneConductSetting(conductSetting)
@@ -134,12 +216,14 @@ const save = async () => {
     saving.value = true
     try {
         const baseSetting = originalSetting || createDefaultConductSetting()
-        const payload = {
+        const mergedSetting = {
             enabled: form.value.enabled,
             late: { ...baseSetting.late, ...form.value.late },
             absent: { ...baseSetting.absent, ...form.value.absent },
         }
+        const payload = toConductUpdatePayload(mergedSetting)
         await service.updateAttendanceConductSetting(payload)
+        await syncStudentAllowanceFromLateCutoff(payload.late?.cutoff_time)
         close()
         emit('updated')
         await Swal.fire('บันทึกสำเร็จ!', '', 'success')

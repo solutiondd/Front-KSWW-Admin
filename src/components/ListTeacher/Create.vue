@@ -60,9 +60,7 @@
                         </label>
                         <select v-model="formData.pre_name" class="select select-bordered w-full" required>
                             <option value="">เลือกคำนำหน้า</option>
-                            <option value="นาย">นาย</option>
-                            <option value="นาง">นาง</option>
-                            <option value="นางสาว">นางสาว</option>
+                            <option v-for="prefix in prefixOptions" :key="prefix" :value="prefix">{{ prefix }}</option>
                         </select>
                     </div>
 
@@ -171,6 +169,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { getTeacherPrefixOptions } from '../../utils/prefixSystem'
+
+const prefixOptions = computed(() => getTeacherPrefixOptions())
 
 const modalRef = ref(null)
 const loading = ref(false)

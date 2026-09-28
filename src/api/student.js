@@ -48,7 +48,8 @@ export class StudentService {
       if (formData.picture) {
         data.append("picture", formData.picture);
       }
-      data.append("no_use_face", formData.no_use_face);
+      if (formData.no_use_face !== undefined)
+        data.append("no_use_face", formData.no_use_face);
 
       let config = {
         method: "post",

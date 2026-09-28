@@ -49,17 +49,14 @@
                         <input v-model="formData.userid" type="text" class="input input-bordered" required
                             :class="{ 'input-error': useridError }" autocomplete="off" />
                         <label v-if="useridError" class="label"><span class="label-text-alt text-error">{{ useridError
-                                }}</span></label>
+                        }}</span></label>
                     </div>
 
                     <div class="form-control">
                         <label class="label"><span class="label-text">คำนำหน้า</span></label>
                         <select v-model="formData.pre_name" class="select select-bordered" required>
                             <option value="">เลือกคำนำหน้า</option>
-                            <option value="เด็กชาย">เด็กชาย</option>
-                            <option value="เด็กหญิง">เด็กหญิง</option>
-                            <option value="นาย">นาย</option>
-                            <option value="นางสาว">นางสาว</option>
+                            <option v-for="prefix in prefixOptions" :key="prefix" :value="prefix">{{ prefix }}</option>
                         </select>
                     </div>
 
@@ -105,7 +102,7 @@
                         <input v-model="formData.rfid" type="text" class="input input-bordered" @input="validateRfid"
                             autocomplete="off" />
                         <label v-if="rfidError" class="label"><span class="label-text-alt text-error">{{ rfidError
-                                }}</span></label>
+                        }}</span></label>
                     </div>
 
                     <div class="form-control">
@@ -145,8 +142,10 @@ import { ref, computed } from 'vue'
 import { StudentService } from '../../api/student'
 import { useAuthStore } from '../../stores/auth'
 import { mapGradeDisplay, toVisibleSortedGrades } from '../../utils/gradeSystem'
+import { getPrefixOptions } from '../../utils/prefixSystem'
 
 const auth = useAuthStore()
+const prefixOptions = computed(() => getPrefixOptions())
 const imgProfileUrl = import.meta.env.VITE_IMG_PROFILE_URL;
 const getPictureUrl = (pic) => {
     if (!pic) return '';

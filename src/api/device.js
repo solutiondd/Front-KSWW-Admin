@@ -75,6 +75,25 @@ class DeviceService {
       throw error;
     }
   }
+
+  async sendCommand(commandData) {
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}monitor/command`,
+        commandData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${this.token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error sending command:", error);
+      throw error;
+    }
+  }
 }
 
 export default new DeviceService();

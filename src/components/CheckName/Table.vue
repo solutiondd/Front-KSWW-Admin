@@ -86,11 +86,24 @@
                                     <li>
                                         <button type="button" :disabled="autoSaving"
                                             class="max-[444px]:text-xs max-[444px]:px-2"
+                                            @click.stop.prevent="markLate(student._id)">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-black"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            สาย
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" :disabled="autoSaving"
+                                            class="max-[444px]:text-xs max-[444px]:px-2"
                                             @click.stop.prevent="openLeaveModal(student._id, 'draft-edit')">
                                             <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-warning"
                                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                                </path>
                                             </svg>
                                             ลา
                                         </button>
@@ -228,6 +241,10 @@
                                 class="badge badge-success gap-2 max-[444px]:badge-xs">
                                 มา
                             </span>
+                            <span v-else-if="localAttendanceData[student._id]?.status === 'late'"
+                                class="badge bg-black text-white border-black gap-2 max-[444px]:badge-xs">
+                                สาย
+                            </span>
                             <div v-else-if="localAttendanceData[student._id]?.status === 'leave'"
                                 class="dropdown dropdown-center">
                                 <button type="button" tabindex="0"
@@ -330,11 +347,23 @@
                                     </li>
                                     <li>
                                         <button type="button" class="max-[444px]:text-xs max-[444px]:px-2"
+                                            @click.stop.prevent="markLate(student._id)">
+                                            <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-black"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            สาย
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="max-[444px]:text-xs max-[444px]:px-2"
                                             @click.stop.prevent="openLeaveModal(student._id)">
                                             <svg class="w-4 h-4 max-[444px]:w-3.5 max-[444px]:h-3.5 text-warning"
                                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                                </path>
                                             </svg>
                                             ลา
                                         </button>
@@ -586,11 +615,13 @@
 
 <script setup>
 import { nextTick, onMounted, ref, watch, computed } from 'vue';
+import { AllowanceService } from '../../api/allowance';
 import { LeaveService } from '../../api/leave';
 import { ActivityService } from '../../api/activity';
 import featureFlags from '../../config/featureFlags';
 import Swal from 'sweetalert2';
 
+const allowanceService = new AllowanceService();
 const leaveService = new LeaveService();
 const activityService = new ActivityService();
 
@@ -664,6 +695,7 @@ const autoSaving = ref(false);
 const localAttendanceData = ref({});
 const localPendingLeaveApprovals = ref({});
 const leaveTypes = ref([]);
+const allowanceSetting = ref(null);
 const draftChanges = ref({});
 
 const DRAFT_STORAGE_PREFIX = 'checkname-draft-queue-v1';
@@ -750,6 +782,17 @@ const applyDraftChangesToLocalState = () => {
             return;
         }
 
+        if (change.action === 'late') {
+            nextAttendance[studentId] = {
+                status: 'late',
+                leaveType: null,
+                remark: '',
+                isDraft: true,
+            };
+            delete nextPending[studentId];
+            return;
+        }
+
         if (change.action === 'leave') {
             nextAttendance[studentId] = {
                 status: 'leave',
@@ -819,6 +862,7 @@ const getDraftChange = (studentId) => draftChanges.value?.[studentId] || null;
 const getDraftLabel = (studentId) => {
     const action = getDraftChange(studentId)?.action;
     if (action === 'present') return 'มา';
+    if (action === 'late') return 'สาย';
     if (action === 'leave') return 'ลา';
     if (action === 'activity') return 'กิจกรรม';
     return 'รอบันทึก';
@@ -827,6 +871,7 @@ const getDraftLabel = (studentId) => {
 const getDraftBadgeClass = (studentId) => {
     const action = getDraftChange(studentId)?.action;
     if (action === 'present') return 'badge-success';
+    if (action === 'late') return 'bg-black text-white border-black';
     if (action === 'leave') return 'badge-warning';
     if (action === 'activity') return 'badge-info';
     return 'badge-ghost';
@@ -910,19 +955,94 @@ const displayAttendanceStatus = (studentId) => {
     return '';
 };
 
+const DEFAULT_LATE_CUTOFF_TIME = '08:01:00';
+
+const padTimeNumber = (value) => String(value).padStart(2, '0');
+
+const formatSecondsToTime = (totalSeconds) => {
+    const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+    return `${padTimeNumber(hours)}:${padTimeNumber(minutes)}:${padTimeNumber(seconds)}`;
+};
+
+const parseTimeToSeconds = (value) => {
+    if (!value || typeof value !== 'string') return null;
+    const match = value.trim().match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) return null;
+
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const seconds = Number(match[3] || '0');
+
+    if ([hours, minutes, seconds].some((item) => Number.isNaN(item))) return null;
+    return (hours * 3600) + (minutes * 60) + seconds;
+};
+
+const getLateCutoffTime = () => {
+    const selectedRoleRule = Array.isArray(allowanceSetting.value?.rules)
+        ? allowanceSetting.value.rules.find((rule) => rule?.role === (props.selectedRole || 'student'))
+        : null;
+    const lateCutoffTime = allowanceSetting.value?.late?.cutoff_time
+        || allowanceSetting.value?.data?.late?.cutoff_time
+        || allowanceSetting.value?.rules?.late?.cutoff_time
+        || selectedRoleRule?.late?.cutoff_time
+        || selectedRoleRule?.allowance_time
+        || DEFAULT_LATE_CUTOFF_TIME;
+
+    const cutoffSeconds = parseTimeToSeconds(lateCutoffTime);
+    if (cutoffSeconds === null) {
+        return DEFAULT_LATE_CUTOFF_TIME;
+    }
+
+    return formatSecondsToTime(cutoffSeconds);
+};
+
+const getPresentSubmitCapTime = () => {
+    const lateCutoffSeconds = parseTimeToSeconds(getLateCutoffTime()) ?? parseTimeToSeconds(DEFAULT_LATE_CUTOFF_TIME);
+    return formatSecondsToTime(Math.max(0, lateCutoffSeconds - 60));
+};
+
+const getLateSubmitTime = () => {
+    const lateCutoffSeconds = parseTimeToSeconds(getLateCutoffTime()) ?? parseTimeToSeconds(DEFAULT_LATE_CUTOFF_TIME);
+    return formatSecondsToTime(Math.min((24 * 3600) - 1, lateCutoffSeconds + 60));
+};
+
 const toAttendanceSubmitTime = () => {
     const now = new Date();
-    const eightAM = new Date(now);
-    eightAM.setHours(8, 0, 0, 0);
+    const cutoffSeconds = parseTimeToSeconds(getPresentSubmitCapTime()) ?? parseTimeToSeconds('08:00:00');
+    const cutoffDateTime = new Date(now);
+    cutoffDateTime.setHours(0, 0, 0, 0);
+    cutoffDateTime.setSeconds(cutoffSeconds);
 
-    if (now > eightAM) {
-        return '08:00:00';
+    if (now > cutoffDateTime) {
+        return getPresentSubmitCapTime();
     }
 
     const hh = String(now.getHours()).padStart(2, '0');
     const mm = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
     return `${hh}:${mm}:${ss}`;
+};
+
+const toLateAttendanceSubmitTime = () => {
+    const now = new Date();
+
+    const cutoffStr = getLateCutoffTime();
+    const cutoffSeconds = parseTimeToSeconds(cutoffStr) ?? parseTimeToSeconds(DEFAULT_LATE_CUTOFF_TIME);
+
+    const nowSeconds = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds();
+
+    if (nowSeconds < cutoffSeconds) {
+        const lateSeconds = Math.min((24 * 3600) - 1, cutoffSeconds + 60);
+        return formatSecondsToTime(lateSeconds);
+    } else {
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        return `${hh}:${mm}:${ss}`;
+    }
 };
 
 const getLeaveTypeNameById = (leaveTypeId) => {
@@ -1005,6 +1125,16 @@ const loadLeaveTypes = async () => {
     }
 };
 
+const loadAllowanceSetting = async () => {
+    try {
+        const response = await allowanceService.getAllowance();
+        allowanceSetting.value = response?.data || null;
+    } catch (error) {
+        console.error('Load allowance setting error:', error);
+        allowanceSetting.value = null;
+    }
+};
+
 const markPresent = async (studentId) => {
     if (autoSaving.value) return;
     if (!props.selectedDate) {
@@ -1014,6 +1144,18 @@ const markPresent = async (studentId) => {
 
     upsertDraftChange(studentId, {
         action: 'present',
+    });
+};
+
+const markLate = async (studentId) => {
+    if (autoSaving.value) return;
+    if (!props.selectedDate) {
+        Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันที่ก่อน', 'warning');
+        return;
+    }
+
+    upsertDraftChange(studentId, {
+        action: 'late',
     });
 };
 
@@ -1564,6 +1706,16 @@ const saveSingleDraftChange = async (studentId, draftChange) => {
         return;
     }
 
+    if (draftChange.action === 'late') {
+        await leaveService.manualAttendance({
+            user_id: studentId,
+            date: props.selectedDate,
+            time: toLateAttendanceSubmitTime(),
+            remark: '',
+        });
+        return;
+    }
+
     if (draftChange.action === 'leave') {
         let leaveRequestId = draftChange.requestId || null;
         const payload = {
@@ -1764,5 +1916,6 @@ const cancelLeave = async (studentId) => {
 
 onMounted(() => {
     loadLeaveTypes();
+    loadAllowanceSetting();
 });
 </script>

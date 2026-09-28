@@ -21,6 +21,7 @@ const CheckName = () => import("../views/Admin/CheckName.vue");
 const Leave = () => import("../views/Admin/Leave.vue");
 const UniformInspection = () => import("../views/Admin/UniformInspection.vue");
 const AllowanceSetting = () => import("../views/Admin/AllowanceSetting.vue");
+const Monitor = () => import("../views/Admin/Monitor.vue");
 
 const LeaveReport = () => import("../views/Admin/report/LeaveReq.vue");
 const AtRisk = () => import("../views/Admin/report/AtRisk.vue");
@@ -30,7 +31,9 @@ const MissedReport = () => import("../views/Admin/report/Missed.vue");
 const StrangerReport = () => import("../views/Admin/report/Stranger.vue");
 const StatsView = () => import("../views/Admin/report/StatsView.vue");
 const Activity = () => import("../views/Admin/report/Activity.vue");
-const UniformInspectionReport = () => import("../views/Admin/report/UniformInspectionReport.vue");
+const UniformInspectionReport = () =>
+  import("../views/Admin/report/UniformInspectionReport.vue");
+const Summary = () => import("../views/Admin/report/Summary.vue");
 
 const routes = [
   { path: "/", name: "login", component: Login },
@@ -171,9 +174,19 @@ const routes = [
         component: UniformInspectionReport,
       },
       {
+        path: "report/summary",
+        name: "SummaryReport",
+        component: Summary,
+      },
+      {
         path: "allowance-setting",
         name: "AllowanceSetting",
         component: AllowanceSetting,
+      },
+      {
+        path: "monitor",
+        name: "Monitor",
+        component: Monitor,
       },
     ],
   },
