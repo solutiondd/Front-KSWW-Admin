@@ -320,17 +320,19 @@ const loadLeaveRequests = async () => {
             start_date: props.filters.start_date || '',
             end_date: props.filters.end_date || '',
             status: props.filters.status ?? '',
-            grade: props.filters.grade || '',
-            classroom: props.filters.classroom || '',
+            role: 'student',
         };
 
         if (search) {
             filters.userid = search;
-        }
+        } else {
+            filters.grade = props.filters.grade || '';
+            filters.classroom = props.filters.classroom || '';
 
-        if (residentRole === 'teacher' && teacherGrade && teacherClassroom) {
-            filters.grade = teacherGrade;
-            filters.classroom = teacherClassroom;
+            if (residentRole === 'teacher' && teacherGrade && teacherClassroom) {
+                filters.grade = teacherGrade;
+                filters.classroom = teacherClassroom;
+            }
         }
 
         const response = await leaveService.getLeaveRequests(filters);

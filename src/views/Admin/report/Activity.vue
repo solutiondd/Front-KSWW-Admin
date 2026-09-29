@@ -11,8 +11,8 @@
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6 mb-6 space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow p-2 sm:p-6 mb-6 space-y-4">
+            <div class="grid grid-cols-2 xl:grid-cols-4 gap-4">
                 <div class="form-control">
                     <label class="label py-1">
                         <span class="label-text text-sm font-medium">ค้นหารหัส</span>
@@ -28,19 +28,6 @@
                     <input v-model="filters.activity_name" type="text" placeholder="กรอกชื่อกิจกรรม"
                         class="input input-sm input-bordered w-full" />
                 </div>
-
-                <!-- <div class="form-control">
-                    <label class="label py-1">
-                        <span class="label-text text-sm font-medium">สถานะ</span>
-                    </label>
-                    <select v-model="filters.status" class="select select-sm select-bordered w-full">
-                        <option value="">ทั้งหมด</option>
-                        <option value="เข้าร่วม">เข้าร่วม</option>
-                        <option value="สาย">สาย</option>
-                        <option value="ขาด">ขาด</option>
-                        <option value="ลา">ลา</option>
-                    </select>
-                </div> -->
 
                 <div v-if="residentRole !== 'teacher'" class="form-control">
                     <label class="label py-1">
@@ -77,7 +64,7 @@
                 </div> -->
 
                 <div v-if="residentRole === 'teacher'"
-                    class="form-control flex justify-end items-center md:items-end md:col-start-2 xl:col-start-4 xl:col-span-1">
+                    class="form-control col-start-4 flex items-end">
                     <div
                         class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
                         <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>

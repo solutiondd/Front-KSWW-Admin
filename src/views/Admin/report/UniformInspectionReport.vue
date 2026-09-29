@@ -36,7 +36,7 @@
                     </select>
                 </div>
 
-                <div v-if="residentRole === 'teacher'" class="form-control col-span-2 flex items-end">
+                <div v-if="residentRole === 'teacher'" class="form-control col-start-4 flex items-end">
                     <div
                         class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
                         <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>

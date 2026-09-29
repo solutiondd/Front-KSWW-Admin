@@ -217,6 +217,7 @@ const props = defineProps({
     loading: { type: Boolean, default: false },
     totalDays: { type: Number, default: 0 },
     term: { type: Object, default: null },
+    holidays: { type: Array, default: () => [] },
     pageSize: { type: Number, default: 10 },
     filters: { type: Object, default: () => ({}) },
 })
@@ -259,19 +260,50 @@ function goToPage(p) {
 
 const rowStats = ref({})
 
-function diffDaysInclusive(startStr, endStr) {
-    if (!startStr) return 0
-    const start = new Date(startStr)
-    const end = endStr ? new Date(endStr) : start
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0
-    return Math.max(1, Math.round((end - start) / 86400000) + 1)
-}
-
 function extractRows(response) {
     if (Array.isArray(response)) return response
     if (Array.isArray(response?.data)) return response.data
     if (Array.isArray(response?.results)) return response.results
     return []
+}
+
+function normalizeDateKey(value) {
+    return String(value || '').match(/^\d{4}-\d{2}-\d{2}/)?.[0] || ''
+}
+
+function isWeekdayDate(dateKey) {
+    const [year, month, day] = dateKey.split('-').map(Number)
+    const date = new Date(Date.UTC(year, month - 1, day))
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+        return false
+    }
+    const dayOfWeek = date.getUTCDay()
+    return dayOfWeek !== 0 && dayOfWeek !== 6
+}
+
+function isSchoolDate(dateKey, holidayDateSet) {
+    return Boolean(dateKey) && isWeekdayDate(dateKey) && !holidayDateSet.has(dateKey)
+}
+
+function getSchoolDatesBetween(startValue, endValue, holidayDateSet) {
+    const startKey = normalizeDateKey(startValue)
+    const endKey = normalizeDateKey(endValue || startValue)
+    if (!startKey || !endKey) return []
+
+    const start = new Date(`${startKey}T00:00:00.000Z`)
+    const end = new Date(`${endKey}T00:00:00.000Z`)
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return []
+
+    const dates = []
+    for (let timestamp = start.getTime(); timestamp <= end.getTime(); timestamp += 86400000) {
+        const dateKey = new Date(timestamp).toISOString().slice(0, 10)
+        if (isSchoolDate(dateKey, holidayDateSet)) dates.push(dateKey)
+    }
+    return dates
+}
+
+function isFullDayLeave(item) {
+    return [item.start_time, item.end_time].every((time) => time == null || String(time).trim() === '')
 }
 
 async function fetchAllAttendance(params) {
@@ -327,11 +359,13 @@ async function loadBatchStats() {
             start_date: props.term.start_date,
             end_date: props.term.end_date,
             status: 'approved',
-            grade: props.filters?.grade || '',
-            classroom: props.filters?.classroom || '',
+            role: 'student',
         }
         if (search) {
             leaveFilters.userid = search
+        } else {
+            leaveFilters.grade = props.filters?.grade || ''
+            leaveFilters.classroom = props.filters?.classroom || ''
         }
 
         const activityFilters = {
@@ -359,25 +393,42 @@ async function loadBatchStats() {
         const lateRows = lateSettled.status === 'fulfilled' ? lateSettled.value : []
         const leaveRows = leaveSettled.status === 'fulfilled' ? extractRows(leaveSettled.value) : []
         const actRows = actSettled.status === 'fulfilled' ? extractRows(actSettled.value) : []
-
-        const attMap = new Map()
-        for (const item of attRows) {
-            const uid = String(item.userid || '').trim()
-            if (uid) attMap.set(uid, item.attendances?.length || 0)
-        }
+        const holidayDateSet = new Set(
+            props.holidays.map((holiday) => normalizeDateKey(holiday.date || holiday.start_date)).filter(Boolean)
+        )
 
         const lateMap = new Map()
         for (const item of lateRows) {
             const uid = String(item.userid || '').trim()
-            if (uid) lateMap.set(uid, item.late_dates?.length || 0)
+            if (uid) {
+                const lateDates = (Array.isArray(item.late_dates) ? item.late_dates : [])
+                    .map((late) => normalizeDateKey(late.date))
+                    .filter((date) => isSchoolDate(date, holidayDateSet))
+                lateMap.set(uid, new Set(lateDates))
+            }
+        }
+
+        const attMap = new Map()
+        for (const item of attRows) {
+            const uid = String(item.userid || '').trim()
+            if (uid) {
+                const lateDates = lateMap.get(uid) || new Set()
+                const attendanceDates = (Array.isArray(item.attendances) ? item.attendances : [])
+                    .map((attendance) => normalizeDateKey(attendance.date))
+                    .filter((date) => isSchoolDate(date, holidayDateSet) && !lateDates.has(date))
+                attMap.set(uid, new Set(attendanceDates).size)
+            }
         }
 
         const leaveMap = new Map()
         for (const item of leaveRows) {
             const uid = String(item.user_id?.userid || item.user_id || '').trim()
-            if (uid) {
-                const days = diffDaysInclusive(item.start_date, item.end_date)
-                leaveMap.set(uid, (leaveMap.get(uid) || 0) + days)
+            if (uid && isFullDayLeave(item)) {
+                const leaveDates = leaveMap.get(uid) || new Set()
+                for (const date of getSchoolDatesBetween(item.start_date, item.end_date, holidayDateSet)) {
+                    leaveDates.add(date)
+                }
+                leaveMap.set(uid, leaveDates)
             }
         }
 
@@ -385,11 +436,15 @@ async function loadBatchStats() {
         for (const item of actRows) {
             const uid = String(item.user_id?.userid || item.user_id || '').trim()
             if (uid) {
-                const days = diffDaysInclusive(
+                const activityDates = actMap.get(uid) || new Set()
+                for (const date of getSchoolDatesBetween(
                     item.activity_date_start || item.activity_date || item.date,
-                    item.activity_date_end || item.activity_date_start || item.activity_date || item.date
-                )
-                actMap.set(uid, (actMap.get(uid) || 0) + days)
+                    item.activity_date_end || item.activity_date_start || item.activity_date || item.date,
+                    holidayDateSet
+                )) {
+                    activityDates.add(date)
+                }
+                actMap.set(uid, activityDates)
             }
         }
 
@@ -397,9 +452,9 @@ async function loadBatchStats() {
         for (const student of props.students) {
             const uid = String(student.userid || '').trim()
             const present = attMap.get(uid) || 0
-            const late = lateMap.get(uid) || 0
-            const leave = leaveMap.get(uid) || 0
-            const activity = actMap.get(uid) || 0
+            const late = lateMap.get(uid)?.size || 0
+            const leave = leaveMap.get(uid)?.size || 0
+            const activity = actMap.get(uid)?.size || 0
             const absent = Math.max(0, props.totalDays - present - late - leave - activity)
 
             newStats[uid] = {
@@ -497,7 +552,7 @@ async function exportToExcel() {
     }
 }
 
-watch([() => props.students, () => props.term, () => props.totalDays], () => {
+watch([() => props.students, () => props.term, () => props.totalDays, () => props.holidays], () => {
     loadBatchStats()
 }, { immediate: true, deep: true })
 

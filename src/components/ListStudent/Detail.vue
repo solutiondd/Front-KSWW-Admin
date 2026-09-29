@@ -465,7 +465,6 @@ const fetchAttendance = async () => {
         const month = selectedMonth.value
         const start = `${year}-${String(month + 1).padStart(2, '0')}-01`
         const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`
-        const leaveUserId = props.student?._id || props.student?.id || props.student?.userid || ''
         const activityUserId = props.student?.userid || props.student?.id || props.student?._id || ''
         const activityPromise = activityUserId
             ? activityService.getActivities(start, end, { userid: activityUserId })
@@ -485,7 +484,8 @@ const fetchAttendance = async () => {
                 start_date: start,
                 end_date: end,
                 status: 'approved',
-                user_id: leaveUserId,
+                role: 'student',
+                userid: props.student?.userid || '',
             }),
             activityPromise,
         ])

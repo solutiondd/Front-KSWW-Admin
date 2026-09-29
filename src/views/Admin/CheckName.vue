@@ -429,6 +429,7 @@ const mapDailyStatus = async (studentList, roleType = 'student') => {
             start_date: selectedDate.value,
             end_date: selectedDate.value,
             status: '',
+            role: roleType,
             user_id: '',
         }),
         activityService.getActivities(selectedDate.value, selectedDate.value, activityFilters),

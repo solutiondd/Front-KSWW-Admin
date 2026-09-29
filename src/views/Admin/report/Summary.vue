@@ -22,7 +22,7 @@
         </div>
 
         <div class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
                 <div class="form-control">
                     <label class="label py-1">
@@ -55,14 +55,6 @@
                     </select>
                 </div>
 
-                <div v-if="residentRole === 'teacher'" class="form-control">
-                    <div
-                        class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
-                        <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>
-                        <span>{{ mapGradeDisplay(teacherGrade) }}/{{ teacherClassroom }}</span>
-                    </div>
-                </div>
-
                 <div class="form-control">
                     <label class="label py-1">
                         <span class="label-text text-sm font-medium">แถวต่อหน้า</span>
@@ -72,6 +64,14 @@
                         <option :value="20">20</option>
                         <option :value="50">50</option>
                     </select>
+                </div>
+
+                <div v-if="residentRole === 'teacher'" class="form-control col-start-4 flex items-end">
+                    <div
+                        class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
+                        <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>
+                        <span>{{ mapGradeDisplay(teacherGrade) }}/{{ teacherClassroom }}</span>
+                    </div>
                 </div>
             </div>
             <div class="flex justify-end">
@@ -91,7 +91,7 @@
         </div>
 
         <SummaryTable :students="students" :loading="loadingStudents" :total-days="totalDays" :term="selectedTerm"
-            :page-size="pageSize" :filters="filters" />
+            :holidays="holidays" :page-size="pageSize" :filters="filters" />
     </div>
 </template>
 

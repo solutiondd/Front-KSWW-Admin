@@ -21,7 +21,7 @@
 
         <div class="bg-base-100 rounded-lg shadow-lg p-4 space-y-3">
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div v-if="residentRole !== 'teacher'" class="form-control">
                     <label class="label py-1">
                         <span class="label-text text-sm font-medium">ประเภท</span>
@@ -64,7 +64,7 @@
                     </select>
                 </div>
                 <div v-if="residentRole === 'teacher'"
-                    class="form-control col-span-3 flex flex-col items-center md:items-end">
+                    class="form-control col-start-4 flex items-center md:items-end">
                     <div
                         class="p-1 text-white bg-primary rounded-md text-center min-w-[120px] flex flex-col items-center">
                         <span class="label-text text-sm font-medium mb-1 text-secondary">ชั้นปี / ห้อง</span>
